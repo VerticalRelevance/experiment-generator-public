@@ -1,0 +1,18 @@
+root_folder: testing
+signatures:
+- name: a_func
+  args:
+    i: dict
+    j: dict
+    k: int
+- name: atest
+  args:
+    x: int
+    y: int
+- name: another
+  args:
+    b: ''
+    c: ''
+- name: hello
+  args:
+    name: str
