@@ -73,14 +73,3 @@ folder_path = r'tmp/testing/file.py'
 #     zip_ref.extractall('tmp')
 #     name = zip_ref.namelist()
 #     print(name)
-
-def get_module_path(file_path):
-    # Convert file path to module path
-    abs_path = os.path.abspath(file_path)
-    module_path = os.path.splitext(abs_path)[0].replace(os.sep, '.')
-    module_path = module_path.replace('/tmp.', '', 1)  # Remove leading "/tmp."
-    module_path_list = module_path.split('.')
-    module_path.replace("\\", "/")
-    return module_path
-
-print(get_module_path(folder_path))

@@ -20,11 +20,14 @@ class GeneratorStack(Stack):
 
         # Dynamodb and S3 storage
         modules_table = dynamodb.Table(self, "ModulesTable",
-            partition_key=dynamodb.Attribute(name="function_name", type=dynamodb.AttributeType.STRING),
-            sort_key=dynamodb.Attribute(name="module", type=dynamodb.AttributeType.STRING),
+            partition_key=dynamodb.Attribute(name="package", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="function_name", type=dynamodb.AttributeType.STRING),
         )
 
+        # Config bucket not used as of now
         config_bucket = s3.Bucket(self, 'ConfigBucket')
+
+        storage = {"dynamodb": modules_table, "s3": config_bucket}
 
         package_route = Route(self, 'Package',
                                 api=api,
@@ -37,17 +40,24 @@ class GeneratorStack(Stack):
                                     'method' : "POST",
                                     'require_key': False,
                                 },
-                                storage={"dynamodb": modules_table,
-                                         "s3": config_bucket},
+                                storage=storage
                             )
         
-        # delete_package_lambda = 
+        delete_package_lambda = package_route.create_lambda_function(
+                                                                     name='delete-package',
+                                                                     lambda_data={
+                                                                            'code': _lambda.Code.from_asset('lambda/package/delete'),
+                                                                            'timeout' : Duration.minutes(1)
+                                                                        },
+                                                                     lambda_role=package_route.lambda_role,
+                                                                     storage=storage
+                                                                )
         
-        # package_route.add_method(
-        #     api_config={
-        #         'method': 'DELETE',
-        #         'require_key': False,
-        #     },
-        #     rt_lambda=
-        # )
+        package_route.add_method(
+            api_config={
+                'method': 'DELETE',
+                'require_key': False,
+            },
+            rt_lambda=delete_package_lambda
+        )
 

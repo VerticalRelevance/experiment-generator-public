@@ -3,6 +3,7 @@ import ast
 import boto3
 import zipfile
 import base64
+import shutil
 
 def extract_function_signatures(folder_path):
     signatures = []
@@ -23,7 +24,7 @@ def process_file(file_path, folder_path):
             print(f"Syntax error in file: {file_path}")
 
     module_path = file_path.replace("\\", "/")
-    module_path = module_path.replace(folder_path+"/", '', 1)  # Remove leading directory
+    module_path = module_path.replace(folder_path+"/", '', 1)  # Remove leading dir
     
     return extract_function_signatures_from_tree(tree, module_path)
 
@@ -38,22 +39,28 @@ def extract_function_signatures_from_tree(tree, module_path):
 
 def get_function_signature(node, module_path):
     function_name = node.name
-    args = [arg.arg for arg in node.args.args]
+    all_args = node.args.args
+    args = [arg.arg for arg in all_args]
     defaults = [None] * (len(args) - len(node.args.defaults)) + node.args.defaults
 
-    # Extract argument types
+    # Extract argument types and default values
     arg_types = []
-    for arg in node.args.args:
+    default_values = []
+    for arg, default in zip(all_args, defaults):
         if arg.annotation:
             arg_types.append(ast.unparse(arg.annotation).strip())
         else:
             arg_types.append('')
+        if default:
+            default_values.append(ast.literal_eval(ast.unparse(default).strip()))
+        else:
+            default_values.append(None)
 
     signature = {
         'function_name': function_name,
-        'module': os.path.split(module_path)[0],
-        'full_path': module_path,
-        'args': {arg: type_ for arg, type_ in zip(args, arg_types)},
+        'package': module_path.split("/")[0],
+        'import_path': module_path.replace('/','.'),
+        'args': {arg: {'type': type_, 'default': default_} for arg, type_, default_ in zip(args, arg_types, default_values)},
     }
     return signature
 
@@ -85,10 +92,11 @@ def handler(event, context):
     with open(temp_zip_file_path, 'wb') as temp_zip_file:
         temp_zip_file.write(data)
     
+    # Note, package/module/folder are used interchangably
     unzip_target = '/tmp/module'
     os.mkdir(unzip_target)
 
-    # Extract the contents of the zip file to a folder with the same name as the zip file
+    # Extract the contents of the zip file
     with zipfile.ZipFile(temp_zip_file_path, 'r') as zip_ref:
         zip_ref.extractall(unzip_target)
         
@@ -98,18 +106,22 @@ def handler(event, context):
     try:
         # Extract function signatures
         signatures = extract_function_signatures(unzip_target)
-        # Send signatures to DynamoDB and upload module to s3
+        print(signatures)
+
+        # Send signatures to DynamoDB
         send_to_dynamodb(signatures, table_name)
-        upload_directory_to_s3(unzip_target, bucket, 'modules')
 
         response = {
             'statusCode': 200,
             'body': 'Success'
         }
     except Exception as e:
+        print(e)
         response = {
             'statusCode': 500,
-            'body': "An error occurred during processing."
+            'body': f"Error: {e}"
         }
+    
+    shutil.rmtree(unzip_target)
     
     return response
