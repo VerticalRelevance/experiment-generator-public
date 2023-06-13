@@ -11,16 +11,18 @@ class Route(Construct):
 
         self.lambda_role = self.create_lambda_role(name, lambda_data)
         
-        route_lambda = self.create_lambda_function(name, lambda_data, self.lambda_role, storage)
+        self.route_lambda = self.create_lambda_function(name, lambda_data, self.lambda_role, storage)
 
-        route_lambda.add_permission('APIinvoke', principal=_iam.ServicePrincipal("apigateway.amazonaws.com"))
+        self.route_lambda.add_permission('APIinvoke', principal=_iam.ServicePrincipal("apigateway.amazonaws.com"))
 
         if 'parent_route' in api_config:
-            self.route = api_config['parent_route']
+            root = api_config['parent_route']
         else:
-            self.route = api.root.add_resource(name)
+            root = api.root
 
-        self.add_method(api_config, route_lambda)
+        self.route = root.add_resource(name)
+
+        self.add_method(api_config, self.route_lambda)
         
         if "cors" in api_config:
             self.route.add_cors_preflight(
@@ -69,8 +71,8 @@ class Route(Construct):
             code=lambda_data['code'],
             handler='main.handler',
             role=lambda_role,
-            layers=lambda_data.get('layers'),  # Using .get() for layers
-            timeout=lambda_data.get('timeout'),  # Using .get() for timeout
+            layers=lambda_data.get('layers'),  
+            timeout=lambda_data.get('timeout'), 
             environment=env,
             function_name=name+"-lambda"
         )

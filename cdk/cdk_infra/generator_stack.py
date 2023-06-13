@@ -19,15 +19,15 @@ class GeneratorStack(Stack):
         api = apigw.RestApi(self, 'ExperimentGeneratorAPI', binary_media_types=["*/*"])
 
         # Dynamodb and S3 storage
-        modules_table = dynamodb.Table(self, "ModulesTable",
-            partition_key=dynamodb.Attribute(name="package", type=dynamodb.AttributeType.STRING),
-            sort_key=dynamodb.Attribute(name="function_name", type=dynamodb.AttributeType.STRING),
+        db_table = dynamodb.Table(self, "Table",
+            partition_key=dynamodb.Attribute(name="partition_key", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="sort_key", type=dynamodb.AttributeType.STRING),
         )
 
         # Config bucket not used as of now
-        config_bucket = s3.Bucket(self, 'ConfigBucket')
+        # config_bucket = s3.Bucket(self, 'ConfigBucket')
 
-        storage = {"dynamodb": modules_table, "s3": config_bucket}
+        storage = {"dynamodb": db_table}
 
         package_route = Route(self, 'Package',
                                 api=api,
@@ -61,3 +61,74 @@ class GeneratorStack(Stack):
             rt_lambda=delete_package_lambda
         )
 
+        config_route = api.root.add_resource('config')
+        
+        method_route = Route(self, 'Method',
+                                api=api,
+                                name="method",
+                                lambda_data={
+                                    'code': _lambda.Code.from_asset('lambda/config/method'),
+                                    'timeout' : Duration.minutes(1)
+                                },
+                                api_config={
+                                    'method' : "POST",
+                                    'require_key': False,
+                                    'parent_route': config_route
+                                },
+                                storage=storage,
+                            )
+        
+        method_route_read = method_route.add_method(
+            api_config={
+                'method': 'GET',
+                'require_key': False,
+            },
+            rt_lambda=method_route.route_lambda
+        )
+
+        method_route_delete = method_route.add_method(
+            api_config={
+                'method': 'DELETE',
+                'require_key': False,
+            },
+            rt_lambda=method_route.route_lambda
+        )
+
+        scenario_route = Route(self, 'Scenario',
+                                api=api,
+                                name="scenario",
+                                lambda_data={
+                                    'code': _lambda.Code.from_asset('lambda/config/scenario'),
+                                    'timeout' : Duration.minutes(1)
+                                },
+                                api_config={
+                                    'method' : "POST",
+                                    'require_key': False,
+                                    'parent_route': config_route
+                                },
+                                storage=storage,
+                            )
+test = {
+    "term": "test_term",
+    "scenario": {
+        "pod_healthy": {
+            "cluster_name": "${cluster_name}",
+            "health_check_path": "${health_check_path}",
+            "health_check_port": "${health_check_port}",
+            "name_space": "${name_space}",
+            "output_s3_bucket_name": "${output_s3_bucket_name}",
+            "pod_name_pattern": "${pod_name_pattern}",
+            "region": "${region}",
+            "tag_key": "${tag_key}",
+            "tag_value": "${tag_value}"
+            },
+        "delete_pod": {
+                "name_space": "${name_space}",
+                "output_s3_bucket_name": "${output_s3_bucket_name}",
+                "pod_name_pattern": "${pod_name_pattern}",
+                "region": "${region}",
+                "tag_key": "${tag_key}",
+                "tag_value": "${tag_value}"   
+        }
+        }
+}

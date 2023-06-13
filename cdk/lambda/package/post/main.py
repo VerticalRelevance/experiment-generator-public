@@ -57,8 +57,9 @@ def get_function_signature(node, module_path):
             default_values.append(None)
 
     signature = {
-        'function_name': function_name,
-        'package': module_path.split("/")[0],
+        'partition_key': 'packages',
+        'sort_key': function_name,
+        'pacakge_name': module_path.split("/")[0],
         'import_path': module_path.replace('/','.'),
         'args': {arg: {'type': type_, 'default': default_} for arg, type_, default_ in zip(args, arg_types, default_values)},
     }
@@ -101,7 +102,7 @@ def handler(event, context):
         zip_ref.extractall(unzip_target)
         
     table_name = os.environ['TABLE_NAME']
-    bucket = os.environ['BUCKET_NAME']
+    # bucket = os.environ['BUCKET_NAME']
     
     try:
         # Extract function signatures
