@@ -2,6 +2,7 @@ import boto3
 import json
 import os
 import base64
+from typing import get_args
 
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
@@ -95,8 +96,38 @@ def compare_arg_types(input_args, types):
 
     for key, value in types.items():
         if value and arg_types[key] != value:
-            diff_values[key] = value
+            try:
+                arg_type = eval(value.lower())
+                outer_type, inner_type = outer_inner_types(arg_type)
+                if not check_inner_type(input_args[key], outer_type, inner_type):
+                    diff_values[key] = value
+            except Exception as e:
+                print("Error:", str(e))
+                diff_values[key] = value
     return diff_values
+
+def outer_inner_types(arg):
+
+    outer = arg.__name__
+    outer = eval(outer)
+    inner_args = get_args(arg)
+    inner = inner_args[0]
+
+    return outer, inner
+
+def check_inner_type(iterable, outer, inner):
+    print(outer, inner)
+    inner_check = [isinstance(item, inner) for item in iterable]
+    print(inner_check)
+    if all(inner_check):
+        print("pass")
+        print(iterable)
+        print(type(iterable))
+        if type(iterable)==outer:
+            print("pass")
+            return True
+    else:
+        return False 
 
 def handler(event, context):
     http_method = event['httpMethod']

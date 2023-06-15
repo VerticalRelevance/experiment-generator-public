@@ -147,4 +147,26 @@ class GeneratorStack(Stack):
                                 },
                                 storage=storage,
                             )
+        target_route_read = target_route.add_method(
+            api_config={
+                'method': 'GET',
+                'require_key': False,
+            },
+            rt_lambda=target_route.route_lambda
+        )
 
+        target_route_delete = target_route.add_method(
+            api_config={
+                'method': 'DELETE',
+                'require_key': False,
+            },
+            rt_lambda=target_route.route_lambda
+        )
+
+        target_route_update = target_route.add_method(
+            api_config={
+                'method': 'PUT',
+                'require_key': False,
+            },
+            rt_lambda=target_route.route_lambda
+        )
