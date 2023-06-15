@@ -9,7 +9,7 @@ def extract_function_signatures(folder_path):
     signatures = []
     for root, dirs, files in os.walk(folder_path):
         for file_name in files:
-            if file_name.endswith('.py') and not file_name.startswith('__'):
+            if file_name != 'shared.py' and file_name.endswith('.py') and not file_name.startswith('__'): 
                 file_path = os.path.join(root, file_name)
                 signatures.extend(process_file(file_path, folder_path))
 
@@ -17,14 +17,16 @@ def extract_function_signatures(folder_path):
 
 
 def process_file(file_path, folder_path):
+    # Get ast tree
     with open(file_path, 'r') as file:
         try:
             tree = ast.parse(file.read())
         except SyntaxError:
             print(f"Syntax error in file: {file_path}")
 
+    # Replace \ with / and remove leading dir
     module_path = file_path.replace("\\", "/")
-    module_path = module_path.replace(folder_path+"/", '', 1)  # Remove leading dir
+    module_path = module_path.replace(folder_path+"/", '', 1)  
     
     return extract_function_signatures_from_tree(tree, module_path)
 

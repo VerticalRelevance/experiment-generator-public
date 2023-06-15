@@ -108,27 +108,43 @@ class GeneratorStack(Stack):
                                 },
                                 storage=storage,
                             )
-test = {
-    "term": "test_term",
-    "scenario": {
-        "pod_healthy": {
-            "cluster_name": "${cluster_name}",
-            "health_check_path": "${health_check_path}",
-            "health_check_port": "${health_check_port}",
-            "name_space": "${name_space}",
-            "output_s3_bucket_name": "${output_s3_bucket_name}",
-            "pod_name_pattern": "${pod_name_pattern}",
-            "region": "${region}",
-            "tag_key": "${tag_key}",
-            "tag_value": "${tag_value}"
+        
+        scenario_route_read = scenario_route.add_method(
+            api_config={
+                'method': 'GET',
+                'require_key': False,
             },
-        "delete_pod": {
-                "name_space": "${name_space}",
-                "output_s3_bucket_name": "${output_s3_bucket_name}",
-                "pod_name_pattern": "${pod_name_pattern}",
-                "region": "${region}",
-                "tag_key": "${tag_key}",
-                "tag_value": "${tag_value}"   
-        }
-        }
-}
+            rt_lambda=scenario_route.route_lambda
+        )
+
+        scenario_route_delete = scenario_route.add_method(
+            api_config={
+                'method': 'DELETE',
+                'require_key': False,
+            },
+            rt_lambda=scenario_route.route_lambda
+        )
+
+        scenario_route_update = scenario_route.add_method(
+            api_config={
+                'method': 'PUT',
+                'require_key': False,
+            },
+            rt_lambda=scenario_route.route_lambda
+        )
+
+        target_route = Route(self, 'Target',
+                                api=api,
+                                name="target",
+                                lambda_data={
+                                    'code': _lambda.Code.from_asset('lambda/config/target'),
+                                    'timeout' : Duration.minutes(1)
+                                },
+                                api_config={
+                                    'method' : "POST",
+                                    'require_key': False,
+                                    'parent_route': config_route
+                                },
+                                storage=storage,
+                            )
+

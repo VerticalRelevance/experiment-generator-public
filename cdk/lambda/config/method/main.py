@@ -38,12 +38,28 @@ def delete_item(table, partition_key, sort_key):
 
     return response
 
+# def update_item(table, partition_key, sort_key, method):
+#     key = {
+#         'partition_key': partition_key,
+#         'sort_key': sort_key
+#     }
+
+#     update_expression = 'SET #attr = :update_vals'
+
+#     response = table.update_item(
+#         Key=key,
+#         UpdateExpression=update_expression,
+#         ExpressionAttributeValues={':update_vals': method},
+#         ExpressionAttributeNames={"#attr": "method"}
+#     )
+#     return response
+
 def build_method_item(func, table):
 
     signature = get_item(table, 'packages', func)
     item = {
         'name': func,
-        'type': signature['import_path'].split('.')[-2], # whether in actions or probes file. What do we do if its in shared?
+        'type': signature['import_path'].split('.')[-2][:-1], # whether in actions or probes file. What do we do if its in shared?
         'provider': {
             'type': 'python',
             'module': signature['import_path'],
@@ -76,24 +92,30 @@ def handle_dynamodb_response(response):
 def handler(event, context):
     
     # Extract values
-    data = base64.b64decode(event['body'])
-    mappings = json.loads(data)
-    method = []
+    http_method = event['httpMethod']
+    if http_method != "GET":
+        data = base64.b64decode(event['body'])
+    else:
+        query_parameters = event['queryStringParameters']
+        print(query_parameters)
+        data=query_parameters['term']
 
-    # Cycle through term-function mappings and handle method crud
-    for term, functions in mappings.items():
-        method = [build_method_item(func, table) for func in functions]
-            
-        http_method = event['httpMethod']
-        
-        if http_method == 'POST':
+    if http_method == 'POST':
+        mappings = json.loads(data)
+        for term, functions in mappings.items():
+            method = [build_method_item(func, table) for func in functions]
             resp = create_item(table=table, partition_key="methods", sort_key=term, method=method)
-            return handle_dynamodb_response(resp)
-        elif http_method == 'GET':
-            resp = get_item(table=table, partition_key="methods", sort_key=term)
-            return handle_dynamodb_response(resp)
-        elif http_method == 'DELETE':
-            resp = delete_item(table=table, partition_key="methods", sort_key=term)
-            return handle_dynamodb_response(resp)
 
-    
+            return handle_dynamodb_response(resp)
+        
+    # For get and delete, we need only the 'term', so we take the data variable as the term
+    elif http_method == 'GET':
+        resp = get_item(table=table, partition_key="methods", sort_key=data)
+        return {
+            'statusCode': 200,
+            'body': json.dumps(resp)
+        } 
+    elif http_method == 'DELETE':
+        print(data.decode())
+        resp = delete_item(table=table, partition_key="methods", sort_key=data.decode())
+        return handle_dynamodb_response(resp)

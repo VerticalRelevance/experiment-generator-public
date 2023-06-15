@@ -7,11 +7,16 @@ dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
 table = dynamodb.Table(table_name)  
 
-def create_item(table, partition_key, sort_key, scenario):
+def create_scenario(table, partition_key, sort_key, scenario_dict):
+    scenario = {}
+    for func, args in scenario_dict.items():
+        for arg, value in args.items():
+            scenario[arg] = value
     item = {
         'partition_key' : partition_key,
         'sort_key' : sort_key,
-        'scenario': scenario
+        'scenario': scenario, # what will be overlaid in experiment configuration
+        'scenario_function_mappings': scenario_dict # preserves function->arg mapping (needed for update)
     }
 
     response = table.put_item(Item=item)
@@ -94,60 +99,93 @@ def compare_arg_types(input_args, types):
     return diff_values
 
 def handler(event, context):
+    http_method = event['httpMethod']
     
     # Extract values
-    data = base64.b64decode(event['body'])
-    mappings = json.loads(data)
-    term = mappings['term']
-    parameters = mappings['scenario']
+    if http_method != "GET":
+        data = base64.b64decode(event['body'])
+        mappings = json.loads(data)
+        term = mappings['term']
+        
+    else:
+        query_parameters = event['queryStringParameters']
+        print(query_parameters)
+        term=query_parameters['term']
+
+    if http_method == 'POST' or http_method == 'PUT':
+        parameters = mappings['scenario']
+        
+        # If PUT/update, get existing params and combine with current  so logic continues as if POST
+        # Switch order to prioritize input arguments
+        if http_method == 'PUT':
+            existing_params = get_item(table, 'scenario_config', term)['scenario_function_mappings']
+            existing_params.update(parameters)
+            parameters=existing_params
+        
+        scenario_config = {}
+
+        # Get arguments from method
+        method = get_item(table, 'methods', term)['method']
+
+        # get in format function_name : argument keys
+        arguments = {item['name']: item['provider']['arguments'].keys() for item in method}
+        print(arguments)
+
+        for func, args in arguments.items():
+            signature = get_item(table, 'packages', func)
+            defaults, types = get_defaults_and_types(signature['args'])
+            if func in parameters:
+
+                # Check if required args and input args are alike 
+                only_args, only_params = compare_lists(args, parameters[func].keys())
+                if not only_args and not only_params:
+
+                    # If args are the same, validate types
+                    diff = compare_arg_types(parameters[func], types)
+                    if not diff:
+
+                        # diff is none if no diffrence - update and prepare to send
+                        scenario_config.update({func: parameters[func]})
+                    else:
+                        return {
+                            'statusCode': 500,
+                            'body': f"The following arguments do not have the correct type: {diff}"
+                        }
+                elif only_args:
+
+                    # only_args -> means input/parameter args are less than required args. So we check for default
+                    has_defaults = {arg:defaults.get(arg) for arg in only_args}
+                    none_values = [key for key, value in has_defaults.items() if value is None]
+
+                    # update if default args + input args satisfy total argument requirements
+                    if not none_values:
+                        arg_update = {func: parameters[func]}
+                        arg_update[func].update(has_defaults)
+                        scenario_config.update(arg_update)
+                        
+                    else:
+                        return {
+                            'statusCode': 500,
+                            'body': f"The function {func} requires the following arguments: {none_values}"
+                        }
+                    
+            else:
+                return {
+                    'statusCode': 500,
+                    'body': f"Missing function {func}"
+                }
+        
+        print(scenario_config)
+        
+        resp = create_scenario(table, 'scenario_config', term, scenario_config)
+        return handle_dynamodb_response(resp)
     
-    scenario_config = {}
-
-    # Get arguments from method
-    method = get_item(table, 'methods', term)['method']
-    arguments = {item['name']: item['provider']['arguments'].keys() for item in method}
-    print(arguments)
-
-    for func, args in arguments.items():
-        signature = get_item(table, 'packages', func)
-        defaults, types = get_defaults_and_types(signature['args'])
-        if func in parameters:
-            only_args, only_params = compare_lists(args, parameters[func].keys())
-            if not only_args and not only_params:
-                diff = compare_arg_types(parameters[func], types)
-                if not diff:
-                    scenario_config.update(parameters[func])
-                else:
-                    return {
-                        'statusCode': 500,
-                        'body': f"The following function types do not match: {diff}"
-                    }
-            elif only_args:
-                has_defaults = {arg:defaults.get(arg) for arg in only_args}
-                none_values = [key for key, value in has_defaults.items() if value is None]
-                if not none_values:
-                    scenario_config.update(parameters[func])
-                    scenario_config.update(has_defaults)
-                else:
-                    return {
-                        'statusCode': 500,
-                        'body': f"The function {func} requires the following arguments: {none_values}"
-                    }
-                
-        else:
-            return {
-                'statusCode': 500,
-                'body': f"Missing function {func}"
-            }
-    
-    print(scenario_config)
-    resp = create_item(table, 'scenario_config', term, scenario_config)
-    return handle_dynamodb_response(resp)
-
-
-            
-
-
-
-
-    
+    elif http_method == 'GET':
+        resp = get_item(table=table, partition_key="scenario_config", sort_key=term)
+        return {
+            'statusCode': 200,
+            'body': json.dumps(resp)
+        } 
+    elif http_method == 'DELETE':
+        resp = delete_item(table=table, partition_key="scenario_config", sort_key=term)
+        return handle_dynamodb_response(resp)
