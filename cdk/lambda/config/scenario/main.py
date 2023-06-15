@@ -116,15 +116,10 @@ def outer_inner_types(arg):
     return outer, inner
 
 def check_inner_type(iterable, outer, inner):
-    print(outer, inner)
+
     inner_check = [isinstance(item, inner) for item in iterable]
-    print(inner_check)
     if all(inner_check):
-        print("pass")
-        print(iterable)
-        print(type(iterable))
         if type(iterable)==outer:
-            print("pass")
             return True
     else:
         return False 
