@@ -35,7 +35,6 @@
 # #         # iterate over in_type to see if each value matches match[0]
 
 
-test = ['a', 'b', 'c']
 # ttype="list[str]"
 # exec(f"""def a(x: {ttype}):
 #     return x""")
@@ -44,26 +43,55 @@ test = ['a', 'b', 'c']
 
 from typing import get_args
 
+# test = ['a', 'b', 'c']
+test = {
+    "test": {
+        "test2": {
+            "test3" : "final"
+        }
+    }
+}
+
 def outer_inner_types(arg):
 
     outer = arg.__name__
     outer = eval(outer)
     inner_args = get_args(arg)
-    inner = inner_args[0]
+    if len(inner_args) == 1:
+        inner = inner_args[0]
+    elif len(inner_args)==2:
+        inner = inner_args
 
     return outer, inner
 
-def check_inner_type(iterable, outer, inner):
+def check_inner_types(iterable, outer, inner):
+    print(iterable)
+    if type(iterable)==outer:
+        if len(inner)==2:
+            nested_inner_args = get_args(inner[1])
+            if not nested_inner_args:
+                print('no nest')
+                inner_check = [isinstance(key, inner[0]) and isinstance(val, inner[1]) for key, val in iterable.items()]
+                print(inner_check)
+            elif (isinstance(key, inner[0]) for key, val in iterable.items()): # if key type matches
+                print('check nested')
+                nest_out, nest_in = outer_inner_types(inner[1])
+                print(nest_out, nest_in)
+                inner_check = [check_inner_types(val, nest_out, nest_in) for val in iterable.values()]
+                print(inner_check)
+            else:
+                return False
+        else:
+            inner_check = [isinstance(item, inner) for item in iterable]
 
-    inner_check = [isinstance(item, inner) for item in iterable]
-    if all(inner_check):
-        if type(iterable)==outer:
-            return True
+        return all(inner_check)    
     else:
         return False 
 
-arg_type = eval("list[str]")
+# arg_type = eval("list[str]")
+arg_type = eval("dict[str, dict]")
 outer_type, inner_type = outer_inner_types(arg_type)
-print(check_inner_type(test, outer_type, inner_type))
+print(outer_type, inner_type)
+print(check_inner_types(test, outer_type, inner_type))
 
 

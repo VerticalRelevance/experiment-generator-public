@@ -38,22 +38,6 @@ def delete_item(table, partition_key, sort_key):
 
     return response
 
-# def update_item(table, partition_key, sort_key, method):
-#     key = {
-#         'partition_key': partition_key,
-#         'sort_key': sort_key
-#     }
-
-#     update_expression = 'SET #attr = :update_vals'
-
-#     response = table.update_item(
-#         Key=key,
-#         UpdateExpression=update_expression,
-#         ExpressionAttributeValues={':update_vals': method},
-#         ExpressionAttributeNames={"#attr": "method"}
-#     )
-#     return response
-
 def build_method_item(func, table):
 
     signature = get_item(table, 'packages', func)

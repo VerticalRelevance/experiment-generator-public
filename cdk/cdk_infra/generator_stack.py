@@ -25,7 +25,7 @@ class GeneratorStack(Stack):
         )
 
         # Config bucket not used as of now
-        # config_bucket = s3.Bucket(self, 'ConfigBucket')
+        experiment_bucket = s3.Bucket(self, 'ExperimentBucket')
 
         storage = {"dynamodb": db_table}
 
@@ -169,4 +169,48 @@ class GeneratorStack(Stack):
                 'require_key': False,
             },
             rt_lambda=target_route.route_lambda
+        )
+
+        yaml_layer = _lambda.LayerVersion(self, "YamlLayer",
+            code=_lambda.Code.from_asset('lambda_layers/yaml'),
+            compatible_runtimes=[_lambda.Runtime.PYTHON_3_9],
+            )
+
+        generate_route = Route(self, 'Generate',
+                                api=api,
+                                name="generate",
+                                lambda_data={
+                                    'code': _lambda.Code.from_asset('lambda/generate'),
+                                    'timeout' : Duration.minutes(1),
+                                    'layers': [yaml_layer]
+                                },
+                                api_config={
+                                    'method' : "POST",
+                                    'require_key': False,
+                                },
+                                storage={"dynamodb": db_table, "s3": experiment_bucket},
+                            )
+        
+        generate_route_read = generate_route.add_method(
+            api_config={
+                'method': 'GET',
+                'require_key': False,
+            },
+            rt_lambda=generate_route.route_lambda
+        )
+
+        generate_route_delete = generate_route.add_method(
+            api_config={
+                'method': 'DELETE',
+                'require_key': False,
+            },
+            rt_lambda=generate_route.route_lambda
+        )
+
+        generate_route_update = generate_route.add_method(
+            api_config={
+                'method': 'PUT',
+                'require_key': False,
+            },
+            rt_lambda=generate_route.route_lambda
         )
