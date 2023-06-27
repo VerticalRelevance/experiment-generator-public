@@ -2,6 +2,7 @@ import boto3
 import json
 import os
 import base64
+from typing import get_args, Literal
 
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
@@ -42,15 +43,15 @@ def build_method_item(func, table):
     signature = get_item(table, 'packages', func)
     item = {
         'name': func,
-        'type': signature['import_path'].split('.')[-2][:-1], # whether in actions or probes file. What do we do if its in shared?
+        'type': signature['import_path'].split('.')[-1][:-1], # whether in actions or probes file.
         'provider': {
             'type': 'python',
             'module': signature['import_path'],
-            'func': func,
+            'func': signature['function_name'],
             'arguments': {arg: f"${{{arg}}}" for arg in signature['args'].keys()},
         }
     }
-    return item
+    return item, signature
 
 def handle_dynamodb_response(response):
     print(response)
@@ -72,6 +73,80 @@ def handle_dynamodb_response(response):
             'statusCode': 500,
             'body': f"An exception occurred: {str(e)}"
         }
+
+def compare_lists(list1, list2):
+    # common_elements = set(list1) & set(list2)
+    only_in_list1 = set(list1) - set(list2)
+    only_in_list2 = set(list2) - set(list1)
+    
+    return list(only_in_list1), list(only_in_list2)
+
+def get_defaults_and_types(data):
+    defaults = {}
+    types = {}
+    print(data)
+    for key, value in data.items():
+        print(key, value)
+        defaults[key] = value["default"]
+        types[key] = value["type"]
+
+    return defaults, types
+
+def compare_arg_types(input_args, types):
+
+    arg_types = {k: type(v).__name__ for k, v in input_args.items()}
+
+    diff_values = {}
+
+    for key, value in types.items():
+        if value and arg_types[key] != value:
+            try:
+                arg_type = eval(value.lower())
+                outer_type, inner_type = outer_inner_types(arg_type)
+                if outer_type == Literal and input_args[key] not in inner_type:
+                    diff_values[key] = value                 
+                elif not check_inner_type(input_args[key], outer_type, inner_type):
+                    diff_values[key] = value
+            except Exception as e:
+                print("Error:", str(e))
+                diff_values[key] = value
+    return diff_values
+
+def outer_inner_types(arg):
+
+    outer = arg.__name__
+    outer = eval(outer)
+    inner_args = get_args(arg)
+    if len(inner_args) == 1:
+        inner = inner_args[0]
+    elif len(inner_args)>1:
+        inner = inner_args
+
+    return outer, inner
+
+def check_inner_types(iterable, outer, inner):
+    print(iterable)
+    if type(iterable)==outer:
+        if len(inner)==2:
+            nested_inner_args = get_args(inner[1])
+            if not nested_inner_args:
+                print('no nest')
+                inner_check = [isinstance(key, inner[0]) and isinstance(val, inner[1]) for key, val in iterable.items()]
+                print(inner_check)
+            elif (isinstance(key, inner[0]) for key, val in iterable.items()): # if key type matches
+                print('check nested')
+                nest_out, nest_in = outer_inner_types(inner[1])
+                print(nest_out, nest_in)
+                inner_check = [check_inner_types(val, nest_out, nest_in) for val in iterable.values()]
+                print(inner_check)
+            else:
+                return False
+        else:
+            inner_check = [isinstance(item, inner) for item in iterable]
+
+        return all(inner_check)    
+    else:
+        return False 
 
 def handler(event, context):
     http_method = event['httpMethod']
@@ -96,22 +171,23 @@ def handler(event, context):
         data = base64.b64decode(event['body'])
         data = json.loads(data)
         responses = []
+        print(data)
 
-        if 'target_config' in data:
+        if 'Parameters' in data:
             if http_method == "POST" or http_method=="PUT":
-                for target, config in data['target_config'].items():
+                for target, config in data['Parameters'].items():
+                    types = {arg: type(value).__name__ for arg, value in config.items()}
                     if http_method == "POST":
-                        resp = create_item(table, 'target_config', target, {"config": config})
+                        resp = create_item(table, 'target_config', target, {"config": config, "types": types})
                         responses.append(handle_dynamodb_response(resp))
                     elif http_method=="PUT":
-                        existing_config = get_item(table, 'target_config', target)['config']
-                        print(existing_config)
-                        existing_config.update(config)
-                        print(existing_config)
-                        resp = create_item(table, 'target_config', target, {"config": existing_config})
+                        existing = get_item(table, 'target_config', target)
+                        existing['config'].update(config)
+                        existing['types'].update(types)
+                        resp = create_item(table, 'target_config', target, {"config": existing['config'], "types": existing['types']})
                         responses.append(handle_dynamodb_response(resp))
             elif http_method == "DELETE":
-                for tc in data['target_config']:
+                for tc in data['Parameters']:
             
                     resp = delete_item(table, 'target_config', tc)
                     responses.append(handle_dynamodb_response(resp))
@@ -122,16 +198,67 @@ def handler(event, context):
                 for target, steady_state in data['steady_state'].items():
                     # Since order matters, for steady state post and put will act identically
                     probes = [build_method_item(func, table) for func in steady_state]
-                    non_probes = [probe['name'] for probe in probes if probe['type'] != 'probe']
-                    
+                    print(probes)
+                    non_probes = [probe[0]['name'] for probe in probes if probe[0]['type'] != 'probe']
+                    print(non_probes)
                     if non_probes:
                         return {
                             'statusCode': 500,
                             'body': f"The following functions are not probes: {non_probes}"
                         }
+                    elif 'Parameters' in data:
+                        input_args = data['Parameters'][target]
+                        all_args = {}
+                        defaults, types = {}, {}
+                        for probe in probes:
+                            all_args.update(probe[0]['provider']['arguments'])
+                            def_, type_ = get_defaults_and_types(probe[1]['args'])
+                            defaults.update(def_)
+                            types.update(type_)
+
+                        only_all_args, only_in_args = compare_lists(all_args.keys(), input_args.keys())
+
+                        if not only_all_args and not only_in_args:
+
+                            # If args are the same, validate types
+                            diff = compare_arg_types(all_args, types)
+                            if not diff:
+
+                                # diff is none if no diffrence - update and prepare to send
+                                resp = create_item(table=table, partition_key="steady_state", sort_key=target, send={"steady_state": probes})
+                            else:
+                                return {
+                                    'statusCode': 500,
+                                    'body': f"The following arguments do not have the correct type: {diff}"
+                                }
+                        elif only_all_args:
+
+                            # only_args -> means input/parameter args are less than required args. So we check for default
+                            has_defaults = {arg:defaults.get(arg) for arg in only_all_args}
+                            none_values = [key for key, value in has_defaults.items() if value is None]
+
+                            # update if default args + input args satisfy total argument requirements
+                            if not none_values:
+
+                                existing_config = get_item(table, 'target_config', target)['config']
+                                existing_config.update(has_defaults)
+                                
+                                resp = create_item(table, 'target_config', target, {"config": existing_config})
+                                responses.append(handle_dynamodb_response(resp))
+                                resp = create_item(table=table, partition_key="steady_state", sort_key=target, send={"steady_state": probes})
+                                responses.append(handle_dynamodb_response(resp))
+                                
+                            else:
+                                return {
+                                    'statusCode': 500,
+                                    'body': f"The function steady state probes require the following arguments: {none_values}"
+                                }
+                        
                     else:
-                        resp = create_item(table=table, partition_key="steady_state", sort_key=target, send={"steady_state": probes})
-    
+                        return {
+                            'statusCode': 500,
+                            'body': "Please include accopanying function arguments for steady state functions"
+                        }    
                     
                     responses.append(handle_dynamodb_response(resp))
                 

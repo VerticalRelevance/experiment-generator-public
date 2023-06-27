@@ -3,6 +3,7 @@ import json
 import os
 import base64
 import yaml
+import decimal
 
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
@@ -36,15 +37,9 @@ def handler(event, context):
         query_parameters = event['queryStringParameters']
         print(query_parameters)
         
-        # List approach/ not working with query params
-        # exp_names=query_parameters['experiment_names']
-        # files = [get_yaml_from_s3(bucket_name, name, load=False) for name in exp_names]
-        # all_yaml_data = '\n---\n'.join(files)
-        
-        exp_name=query_parameters['experiment_name']
+        exp_name=query_parameters['experiment scenario']
         print(exp_name)
         file = get_yaml_from_s3(bucket_name, exp_name, load=False)
-        # all_yaml_data = '\n---\n'.join(files)
 
         return {
             'statusCode': 200,
@@ -76,30 +71,59 @@ def handler(event, context):
                 experiment['title'] = exp_name # change?
                 experiment['description'] = exp_name
 
-                term = exp_map.get('exp_term')
-                target = exp_map.get('target')
+                term = exp_map.get('experiment scenario')
+                target = exp_map.get('target application')
                 
                 if term:
                     experiment['method'] = get_item(table, 'methods', term)['method']
+                    sc = get_item(table, 'scenario_config', term)
+                    experiment['configuration'] = sc['scenario']
+
                 if target:
-                    experiment['steady-state-hypothesis'] = get_item(table, 'steady_state', target)['steady_state']
-                if term:
-                    experiment['configuration'] = get_item(table, 'scenario_config', term)['scenario']
-                if target:
+
+                    try:
+                        experiment['steady-state-hypothesis'] = get_item(table, 'steady_state', target)['steady_state']
+                    except Exception as e:
+                        print(f"An exception occurred: {e}")
+
                     # Layer target configs on top as they take priority
                     print(experiment)
-                    target_config = get_item(table, 'target_config', target)['config']
-                    experiment['configuration'].update(target_config)
+                    target_app = get_item(table, 'target_config', target)
+                    experiment['configuration'].update(target_app['config'])
 
                 if http_method == "POST" and 'method' not in experiment.keys():
                     return {
                         'statusCode': 500,
                         'body': "Need at least a method/term",
-                    } 
+                    }
+                    
+                print(experiment)
+                
+                # DyanmoDB does not diffrentiate between diffrent numeric types and returns all numerics as python decimals 
+                # Look up the correct type and convert
+                for k, v in experiment['configuration'].items():
+                    if type(v) == decimal.Decimal:
+                        print(sc["scenario_function_mappings"])
+                        arg_type = None
+                        
+                        for func, args in sc["scenario_function_mappings"].items():
+                            if k in args.keys():
+                                sig = get_item(table, "packages", func)
+                                arg_type = sig['args'][k]['type']
+                                break
+                            
+                        if not arg_type:
+                            types = target_app['types']
+                            arg_type = types[k]
+                            
+                        # eval and enforce correct type
+                        print(arg_type)
+                        _arg_type_ = eval(arg_type)
+                        experiment['configuration'][k] = _arg_type_(v)
 
                 yaml_data = yaml.dump(experiment, sort_keys=False)
 
-                s3.put_object(Body=yaml_data, Bucket=bucket_name, Key=exp_name)
+                s3.put_object(Body=yaml_data, Bucket=bucket_name, Key=exp_name) # prefix
 
                 return {
                     'statusCode': 200,

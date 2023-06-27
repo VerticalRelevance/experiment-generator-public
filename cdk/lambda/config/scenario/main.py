@@ -2,7 +2,7 @@ import boto3
 import json
 import os
 import base64
-from typing import get_args
+from typing import get_args, Literal
 
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
@@ -65,12 +65,6 @@ def handle_dynamodb_response(response):
             'body': f"An exception occurred: {str(e)}"
         }
     
-def compare_lists(l1, l2):
-    if sorted(l1) == sorted(l2):
-        return "identical"
-    else:
-        return False
-    
 def compare_lists(list1, list2):
     # common_elements = set(list1) & set(list2)
     only_in_list1 = set(list1) - set(list2)
@@ -88,24 +82,6 @@ def get_defaults_and_types(data):
 
     return defaults, types
 
-def compare_arg_types(input_args, types):
-
-    arg_types = {k: type(v).__name__ for k, v in input_args.items()}
-
-    diff_values = {}
-
-    for key, value in types.items():
-        if value and arg_types[key] != value:
-            try:
-                arg_type = eval(value.lower())
-                outer_type, inner_type = outer_inner_types(arg_type)
-                if not check_inner_type(input_args[key], outer_type, inner_type):
-                    diff_values[key] = value
-            except Exception as e:
-                print("Error:", str(e))
-                diff_values[key] = value
-    return diff_values
-
 def outer_inner_types(arg):
 
     outer = arg.__name__
@@ -113,7 +89,7 @@ def outer_inner_types(arg):
     inner_args = get_args(arg)
     if len(inner_args) == 1:
         inner = inner_args[0]
-    elif len(inner_args)==2:
+    elif len(inner_args)>1:
         inner = inner_args
 
     return outer, inner
@@ -142,6 +118,26 @@ def check_inner_types(iterable, outer, inner):
     else:
         return False 
 
+def compare_arg_types(input_args, types):
+
+    arg_types = {k: type(v).__name__ for k, v in input_args.items()}
+
+    diff_values = {}
+
+    for key, value in types.items():
+        if value and arg_types[key] != value:
+            try:
+                arg_type = eval(value.lower())
+                outer_type, inner_type = outer_inner_types(arg_type)
+                if outer_type == Literal and input_args[key] not in inner_type:
+                    diff_values[key] = value                 
+                elif not check_inner_type(input_args[key], outer_type, inner_type):
+                    diff_values[key] = value
+            except Exception as e:
+                print("Error:", str(e))
+                diff_values[key] = value
+    return diff_values
+
 def handler(event, context):
     http_method = event['httpMethod']
     
@@ -157,6 +153,7 @@ def handler(event, context):
         term=query_parameters['term']
 
     if http_method == 'POST' or http_method == 'PUT':
+        print(mappings)
         parameters = mappings['scenario']
         
         # If PUT/update, get existing params and combine with current  so logic continues as if POST
@@ -199,13 +196,13 @@ def handler(event, context):
 
                     # only_args -> means input/parameter args are less than required args. So we check for default
                     has_defaults = {arg:defaults.get(arg) for arg in only_args}
-                    none_values = [key for key, value in has_defaults.items() if value is None]
+                    none_values = [key for key, value in has_defaults.items() if value == "NoDefault"]
 
                     # update if default args + input args satisfy total argument requirements
                     if not none_values:
-                        arg_update = {func: parameters[func]}
-                        arg_update[func].update(has_defaults)
-                        scenario_config.update(arg_update)
+                        # arg_update = {func: parameters[func]}
+                        # arg_update[func].update(has_defaults)
+                        scenario_config.update({func: parameters[func]})
                         
                     else:
                         return {
@@ -214,6 +211,8 @@ def handler(event, context):
                         }
                     
             else:
+                print(func)
+                print(parameters)
                 return {
                     'statusCode': 500,
                     'body': f"Missing function {func}"

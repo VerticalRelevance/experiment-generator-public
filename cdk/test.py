@@ -59,7 +59,7 @@ def outer_inner_types(arg):
     inner_args = get_args(arg)
     if len(inner_args) == 1:
         inner = inner_args[0]
-    elif len(inner_args)==2:
+    elif len(inner_args)>1:
         inner = inner_args
 
     return outer, inner
@@ -89,9 +89,22 @@ def check_inner_types(iterable, outer, inner):
         return False 
 
 # arg_type = eval("list[str]")
-arg_type = eval("dict[str, dict]")
-outer_type, inner_type = outer_inner_types(arg_type)
-print(outer_type, inner_type)
-print(check_inner_types(test, outer_type, inner_type))
+# arg_type = eval("dict[str, dict]")
+# outer_type, inner_type = outer_inner_types(arg_type)
+# print(outer_type, inner_type)
+# print(check_inner_types(test, outer_type, inner_type))
 
+from typing import Literal
+
+def accepts_only_four(x: Literal[4]):
+    print(x)
+
+# accepts_only_four(10)
+
+# ttype = "Literal[4, 5, 6]"
+# atype = eval(ttype)
+# test = 4
+# outer_type, inner_type = outer_inner_types(atype)
+# if outer_type == Literal:
+#     print(test in inner_type)
 

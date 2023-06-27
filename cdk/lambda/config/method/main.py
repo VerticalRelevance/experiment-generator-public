@@ -43,11 +43,11 @@ def build_method_item(func, table):
     signature = get_item(table, 'packages', func)
     item = {
         'name': func,
-        'type': signature['import_path'].split('.')[-2][:-1], # whether in actions or probes file. What do we do if its in shared?
+        'type': signature['import_path'].split('.')[-1][:-1], # whether in actions or probes file.
         'provider': {
             'type': 'python',
             'module': signature['import_path'],
-            'func': func,
+            'func': signature['function_name'],
             'arguments': {arg: f"${{{arg}}}" for arg in signature['args'].keys()},
         }
     }

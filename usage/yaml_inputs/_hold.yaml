@@ -1,0 +1,83 @@
+method:
+  #F5 load balancer
+  - type: action
+    name: Establish load of 1000 tps
+    provider:
+      type: python
+      module: resiliency.load.actions
+      func: load_generate
+      arguments:
+        count: 1000
+
+  - type: action
+    name: elsk-stress-network-latency
+    provider:
+      type: python
+      module: resiliency.ec2.actions
+      func: elk_stress_network_latency
+      arguments:
+        targets:
+        test_target_type: RANDOM
+        tag_key: ${test_instance_tag_key}
+        tag_value: ${test_instance_tag_value}
+        region: ${aws_region}
+        interface: eth0
+        delay: '100'
+        duration: '60'
+        elk_ports: '8200 9200 9300 5601 5044 9600 9700'
+    pauses:
+        after: 10
+
+  - type: probe
+    name: load_report
+    provider:
+        type: python
+        module: resiliency.load.probes
+        func: load_probe_relative
+        arguments:
+            testday: "`r format(Sys.time(), '%d %B, %Y')`"
+            minutes: 20
+            sla: '250'
+            missed_percent: 65
+
+#Repeat steps with load of 10000 tps
+
+  - type: action
+    name: Establish load of 10000 tps
+    provider:
+      type: python
+      module: resiliency.load.actions
+      func: load_generate
+      arguments:
+        count: 10000
+
+  - type: action
+    name: elsk-stress-network-latency
+    provider:
+      type: python
+      module: resiliency.ec2.actions
+      func: elk_stress_network_latency
+      arguments:
+        targets:
+        test_target_type: RANDOM
+        tag_key: ${test_instance_tag_key}
+        tag_value: ${test_instance_tag_value}
+        region: ${aws_region}
+        interface: eth0
+        delay: '100'
+        duration: '60'
+        elk_ports: '8200 9200 9300 5601 5044 9600 9700'
+    pauses:
+        after: 10
+
+  - type: probe
+    name: load_report
+    provider:
+        type: python
+        module: resiliency.load.probes
+        func: load_probe_relative
+        arguments:
+            testday: "`r format(Sys.time(), '%d %B, %Y')`"
+            minutes: 20
+            sla: '250'
+            missed_percent: 65

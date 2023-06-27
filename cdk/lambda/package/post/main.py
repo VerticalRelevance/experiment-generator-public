@@ -9,7 +9,8 @@ def extract_function_signatures(folder_path):
     signatures = []
     for root, dirs, files in os.walk(folder_path):
         for file_name in files:
-            if file_name != 'shared.py' and file_name.endswith('.py') and not file_name.startswith('__'): 
+            if file_name == 'actions.py' or file_name== 'probes.py':
+            # if file_name != 'shared.py' and file_name.endswith('.py') and not file_name.startswith('__'): 
                 file_path = os.path.join(root, file_name)
                 signatures.extend(process_file(file_path, folder_path))
 
@@ -32,7 +33,7 @@ def process_file(file_path, folder_path):
 
 def extract_function_signatures_from_tree(tree, module_path):
     signatures = []
-    for node in ast.walk(tree):
+    for node in tree.body:
         if isinstance(node, ast.FunctionDef):
             signature = get_function_signature(node, module_path)
             signatures.append(signature)
@@ -56,13 +57,17 @@ def get_function_signature(node, module_path):
         if default:
             default_values.append(ast.literal_eval(ast.unparse(default).strip()))
         else:
-            default_values.append(None)
+            default_values.append("NoDefault")
+
+    import_path = module_path.replace('/','.')
+    import_path = import_path.replace('.py','')
 
     signature = {
         'partition_key': 'packages',
-        'sort_key': function_name,
+        'sort_key': f"{import_path}.{function_name}",
         'pacakge_name': module_path.split("/")[0],
-        'import_path': module_path.replace('/','.'),
+        'import_path': import_path,
+        'function_name': function_name,
         'args': {arg: {'type': type_, 'default': default_} for arg, type_, default_ in zip(args, arg_types, default_values)},
     }
     return signature
@@ -75,17 +80,6 @@ def send_to_dynamodb(signatures, table_name):
         for signature in signatures:
             item = signature
             batch.put_item(Item=item)
-
-def upload_directory_to_s3(local_directory, bucket_name, s3_directory):
-    s3 = boto3.client('s3')
-    
-    for root, dirs, files in os.walk(local_directory):
-        for file in files:
-            local_path = os.path.join(root, file)
-            relative_path = os.path.relpath(local_path, local_directory)
-            s3_path = os.path.join(s3_directory, relative_path).replace("\\", "/")
-            s3.upload_file(local_path, bucket_name, s3_path)
-            print(f"Uploaded {local_path} to S3 path: {s3_path}")
 
 def handler(event, context):
 
@@ -104,7 +98,6 @@ def handler(event, context):
         zip_ref.extractall(unzip_target)
         
     table_name = os.environ['TABLE_NAME']
-    # bucket = os.environ['BUCKET_NAME']
     
     try:
         # Extract function signatures

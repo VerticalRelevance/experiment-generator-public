@@ -1,1 +1,0 @@
-{"type": "restart-kubernetes", "service": "webapp", "name": "my-webapp", "config": {"webapp_service_url": "webapp.com"}}

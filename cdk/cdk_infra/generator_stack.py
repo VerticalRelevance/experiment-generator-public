@@ -214,3 +214,18 @@ class GeneratorStack(Stack):
             },
             rt_lambda=generate_route.route_lambda
         )
+
+        get_all_config_route = Route(self, 'GetInputs',
+                        api=api,
+                        name="getinputs",
+                        lambda_data={
+                            'code': _lambda.Code.from_asset('lambda/config/get_all_config'),
+                            'timeout' : Duration.minutes(1),
+                            'layers': [yaml_layer]
+                        },
+                        api_config={
+                            'method' : "GET",
+                            'require_key': False
+                        },
+                        storage=storage
+                    )
