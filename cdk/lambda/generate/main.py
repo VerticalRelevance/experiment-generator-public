@@ -120,6 +120,11 @@ def handler(event, context):
                         print(arg_type)
                         _arg_type_ = eval(arg_type)
                         experiment['configuration'][k] = _arg_type_(v)
+                        
+                for item in experiment['method']:
+                    if 'pauses' in item:
+                        for k, v in item['pauses'].items():
+                            item['pauses'][k] = int(v)
 
                 yaml_data = yaml.dump(experiment, sort_keys=False)
 

@@ -8,16 +8,32 @@ dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
 table = dynamodb.Table(table_name)  
 
-def create_scenario(table, partition_key, sort_key, scenario_dict):
+def create_scenario(table, partition_key, sort_key, scenario_dict, all_defaults, all_types):
     scenario = {}
+    doc = {}
+    no_defaults = [key for key, value in all_defaults.items() if value == "NoDefault"]
+    print(all_types)
     for func, args in scenario_dict.items():
         for arg, value in args.items():
             scenario[arg] = value
+            if arg in doc:
+                doc[arg]['Function Name'].append(func)
+            else:
+                doc[arg] = {
+                    'Required': arg in no_defaults,
+                    'Type': all_types[arg],
+                    'Default': all_defaults.get(arg),
+                    'Function Name': [func]
+                }
+
+
     item = {
         'partition_key' : partition_key,
         'sort_key' : sort_key,
         'scenario': scenario, # what will be overlaid in experiment configuration
-        'scenario_function_mappings': scenario_dict # preserves function->arg mapping (needed for update)
+        'scenario_function_mappings': scenario_dict, # preserves function->arg mapping (needed for update)
+        'required': no_defaults,
+        'documentation': doc
     }
 
     response = table.put_item(Item=item)
@@ -91,13 +107,14 @@ def outer_inner_types(arg):
         inner = inner_args[0]
     elif len(inner_args)>1:
         inner = inner_args
-
+    
+    print(inner, outer)
     return outer, inner
 
 def check_inner_types(iterable, outer, inner):
     print(iterable)
     if type(iterable)==outer:
-        if len(inner)==2:
+        if isinstance(inner, tuple):
             nested_inner_args = get_args(inner[1])
             if not nested_inner_args:
                 print('no nest')
@@ -125,13 +142,16 @@ def compare_arg_types(input_args, types):
     diff_values = {}
 
     for key, value in types.items():
-        if value and arg_types[key] != value:
+        if arg_types.get(key) and arg_types[key] != value:
+            print(value, arg_types.get(key))
             try:
+                print("checking for nested types..")
                 arg_type = eval(value.lower())
                 outer_type, inner_type = outer_inner_types(arg_type)
+                print(outer_type, inner_type)
                 if outer_type == Literal and input_args[key] not in inner_type:
                     diff_values[key] = value                 
-                elif not check_inner_type(input_args[key], outer_type, inner_type):
+                elif not check_inner_types(input_args[key], outer_type, inner_type):
                     diff_values[key] = value
             except Exception as e:
                 print("Error:", str(e))
@@ -171,38 +191,45 @@ def handler(event, context):
         # get in format function_name : argument keys
         arguments = {item['name']: item['provider']['arguments'].keys() for item in method}
         print(arguments)
-
+        # no_defaults = []
+        all_defaults = {}
+        all_types = {}
         for func, args in arguments.items():
             signature = get_item(table, 'packages', func)
             defaults, types = get_defaults_and_types(signature['args'])
+            all_defaults.update(defaults)
+            all_types.update(types)
+            # no_def = [key for key, value in defaults.items() if value == "NoDefault"]
+            # no_defaults.extend(no_def)
             if func in parameters:
 
                 # Check if required args and input args are alike 
                 only_args, only_params = compare_lists(args, parameters[func].keys())
-                if not only_args and not only_params:
+                print("compare types for ", func)
+                
+                # If args are the same, validate types
+                diff = compare_arg_types(parameters[func], types)
+                if diff:
+                    return {
+                        'statusCode': 500,
+                        'body': f"The following arguments do not have the correct type: {diff}"
+                    }
+                elif not only_args and not only_params:
 
-                    # If args are the same, validate types
-                    diff = compare_arg_types(parameters[func], types)
-                    if not diff:
+                    # diff is none if no diffrence - update and prepare to send
+                    scenario_config.update({func: parameters[func]})
 
-                        # diff is none if no diffrence - update and prepare to send
-                        scenario_config.update({func: parameters[func]})
-                    else:
-                        return {
-                            'statusCode': 500,
-                            'body': f"The following arguments do not have the correct type: {diff}"
-                        }
                 elif only_args:
-
+                    
                     # only_args -> means input/parameter args are less than required args. So we check for default
                     has_defaults = {arg:defaults.get(arg) for arg in only_args}
                     none_values = [key for key, value in has_defaults.items() if value == "NoDefault"]
 
                     # update if default args + input args satisfy total argument requirements
                     if not none_values:
-                        # arg_update = {func: parameters[func]}
-                        # arg_update[func].update(has_defaults)
-                        scenario_config.update({func: parameters[func]})
+                        arg_update = {func: parameters[func]}
+                        arg_update[func].update(has_defaults)
+                        scenario_config.update(arg_update)
                         
                     else:
                         return {
@@ -220,7 +247,7 @@ def handler(event, context):
         
         print(scenario_config)
         
-        resp = create_scenario(table, 'scenario_config', term, scenario_config)
+        resp = create_scenario(table, 'scenario_config', term, scenario_config, all_defaults, all_types)
         return handle_dynamodb_response(resp)
     
     elif http_method == 'GET':

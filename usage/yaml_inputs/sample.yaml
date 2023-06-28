@@ -22,8 +22,6 @@ Scenario Configurations:
         count: 1000
       experimentvr.network.actions.point_inactive_dns:
         test_target_type: RANDOM
-        node_key: tag:Name
-        node_values: placeholder.k8s.local
 
 # Target application hits /target route. Takes up to 2 lists: target_config and steady state. 
 # Steady state sets steady state probes and follows identically to /method. 

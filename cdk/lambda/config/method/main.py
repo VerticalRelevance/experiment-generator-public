@@ -38,7 +38,7 @@ def delete_item(table, partition_key, sort_key):
 
     return response
 
-def build_method_item(func, table):
+def build_method_item(func, table, additionals=None):
 
     signature = get_item(table, 'packages', func)
     item = {
@@ -51,6 +51,10 @@ def build_method_item(func, table):
             'arguments': {arg: f"${{{arg}}}" for arg in signature['args'].keys()},
         }
     }
+    
+    print(additionals)
+    if additionals:
+        item.update(additionals)
     return item
 
 def handle_dynamodb_response(response):
@@ -87,7 +91,28 @@ def handler(event, context):
     if http_method == 'POST':
         mappings = json.loads(data)
         for term, functions in mappings.items():
-            method = [build_method_item(func, table) for func in functions]
+            method = []
+            for func in functions:
+                additionals = {}
+                if isinstance(func, dict):
+                    print(func)
+                    for func_name, val in func.items():
+                        if 'pauses' in val:
+                            if 'before' in val['pauses']:
+                                if type(val['pauses']['before']) == int:
+                                    additionals.update({'pauses': val['pauses']})
+                            if 'after' in val['pauses']:
+                                if type(val['pauses']['after']) == int:
+                                    additionals.update({'pauses': val['pauses']})
+                        if 'background' in val:
+                            if type(val['background']) == bool:
+                                additionals.update({'background': val['background']})
+                    item = build_method_item(func_name, table, additionals)
+                    method.append(item)
+                else:
+                    item = build_method_item(func, table)
+                    method.append(item)
+
             resp = create_item(table=table, partition_key="methods", sort_key=term, method=method)
 
             return handle_dynamodb_response(resp)

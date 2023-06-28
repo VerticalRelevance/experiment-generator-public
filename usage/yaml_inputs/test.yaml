@@ -1,0 +1,22 @@
+# Experiment Method will hit the /method route. Must follow method_name: [func1, func2,...] pattern. Can provide a list
+Scenario Method:
+  - test:
+    - experimentvr.k8s.probes.pod_healthy
+    - experimentvr.k8s.actions.delete_pod:
+        pauses:
+          before: 20
+        background: True
+
+# # # Method configurations will hit /scenario route. 
+# Scenario Configurations: 
+#   - term: test
+#     scenario:
+#       experimentvr.k8s.probes.pod_healthy:
+#         region: us-east-1
+#       experimentvr.k8s.actions.delete_pod:
+#         region: us-east-1
+
+Generate: 
+  - test:
+      experiment scenario: test # Everything else
+      target application: (EKS)-Worker Node-EC2  # App

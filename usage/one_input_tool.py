@@ -51,28 +51,6 @@ def main():
         for config in config_data['Generate']:
             api_call("POST", "generate", data=config)
 
-# if __name__ == "__main__":
-#     main()
-# from decimal import Decimal
+if __name__ == "__main__":
+    main()
 
-# val = Decimal('3.14')
-# check = str(val)
-# try:
-#     val = int(check)
-# except:
-#     val = float(check)
-
-# print(val)
-# print(type(val))
-# experiment = {}
-
-# for k, v in experiment['configuration'].items():
-#     if type(v) == decimal.Decimal:
-#         check = str(v)
-#         try:
-#             val = int(check)
-#         except:
-#             val = float(check)
-#         experiment['configuration'][k] = val
-
-api_call("GET", "getinputs")
