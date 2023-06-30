@@ -5,8 +5,6 @@ import os
 
 API_URL = "https://ahefn3akse.execute-api.us-east-1.amazonaws.com/prod/"
 
-import requests
-
 def api_call(method, route, data=None, params=None, files=None):
     url = f"{API_URL}/{route}"
     response = requests.request(method, url, json=data, params=params, files=files)

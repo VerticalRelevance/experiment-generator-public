@@ -82,7 +82,11 @@ def handler(event, context):
                 if target:
 
                     try:
-                        experiment['steady-state-hypothesis'] = get_item(table, 'steady_state', target)['steady_state']
+                        experiment['steady-state-hypothesis'] = {
+                            'title': f"{target} steady state",
+                            'probes': get_item(table, 'steady_state', target)['steady_state']
+                        }
+                        
                     except Exception as e:
                         print(f"An exception occurred: {e}")
 

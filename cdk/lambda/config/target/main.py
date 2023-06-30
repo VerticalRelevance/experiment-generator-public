@@ -92,26 +92,6 @@ def get_defaults_and_types(data):
 
     return defaults, types
 
-def compare_arg_types(input_args, types):
-
-    arg_types = {k: type(v).__name__ for k, v in input_args.items()}
-
-    diff_values = {}
-
-    for key, value in types.items():
-        if value and arg_types[key] != value:
-            try:
-                arg_type = eval(value.lower())
-                outer_type, inner_type = outer_inner_types(arg_type)
-                if outer_type == Literal and input_args[key] not in inner_type:
-                    diff_values[key] = value                 
-                elif not check_inner_type(input_args[key], outer_type, inner_type):
-                    diff_values[key] = value
-            except Exception as e:
-                print("Error:", str(e))
-                diff_values[key] = value
-    return diff_values
-
 def outer_inner_types(arg):
 
     outer = arg.__name__
@@ -121,13 +101,14 @@ def outer_inner_types(arg):
         inner = inner_args[0]
     elif len(inner_args)>1:
         inner = inner_args
-
+    
+    print(inner, outer)
     return outer, inner
 
 def check_inner_types(iterable, outer, inner):
     print(iterable)
     if type(iterable)==outer:
-        if len(inner)==2:
+        if isinstance(inner, tuple):
             nested_inner_args = get_args(inner[1])
             if not nested_inner_args:
                 print('no nest')
@@ -147,6 +128,29 @@ def check_inner_types(iterable, outer, inner):
         return all(inner_check)    
     else:
         return False 
+
+def compare_arg_types(input_args, types):
+
+    arg_types = {k: type(v).__name__ for k, v in input_args.items()}
+
+    diff_values = {}
+
+    for key, value in types.items():
+        if value and key in arg_types and arg_types[key] != value:
+            print(value, arg_types.get(key))
+            try:
+                print("checking for nested types..")
+                arg_type = eval(value.lower())
+                outer_type, inner_type = outer_inner_types(arg_type)
+                print(outer_type, inner_type)
+                if outer_type == Literal and input_args[key] not in inner_type:
+                    diff_values[key] = value                 
+                elif not check_inner_types(input_args[key], outer_type, inner_type):
+                    diff_values[key] = value
+            except Exception as e:
+                print("Error:", str(e))
+                diff_values[key] = value
+    return diff_values
 
 def handler(event, context):
     http_method = event['httpMethod']
@@ -197,9 +201,16 @@ def handler(event, context):
             if http_method == 'POST' or http_method=="PUT":
                 for target, steady_state in data['steady_state'].items():
                     # Since order matters, for steady state post and put will act identically
-                    probes = [build_method_item(func, table) for func in steady_state]
+                    method_items = [build_method_item(func, table) for func in steady_state]
+
+                    # since method items returns method item and sig pair, split it
+                    probes = [item[0] for item in method_items]
+                    signatures = [item[1] for item in method_items]
+
                     print(probes)
-                    non_probes = [probe[0]['name'] for probe in probes if probe[0]['type'] != 'probe']
+                    print(signatures)
+
+                    non_probes = [probe['name'] for probe in probes if probe['type'] != 'probe']
                     print(non_probes)
                     if non_probes:
                         return {
@@ -210,27 +221,27 @@ def handler(event, context):
                         input_args = data['Parameters'][target]
                         all_args = {}
                         defaults, types = {}, {}
-                        for probe in probes:
-                            all_args.update(probe[0]['provider']['arguments'])
-                            def_, type_ = get_defaults_and_types(probe[1]['args'])
+                        for probe, sig in zip(probes, signatures):
+                            all_args.update(probe['provider']['arguments'])
+                            def_, type_ = get_defaults_and_types(sig['args'])
                             defaults.update(def_)
                             types.update(type_)
 
+                        diff = compare_arg_types(all_args, types)
                         only_all_args, only_in_args = compare_lists(all_args.keys(), input_args.keys())
 
-                        if not only_all_args and not only_in_args:
+                        if diff:
+                            return {
+                                'statusCode': 500,
+                                'body': f"The following arguments do not have the correct type: {diff}"
+                            }
 
-                            # If args are the same, validate types
-                            diff = compare_arg_types(all_args, types)
-                            if not diff:
 
-                                # diff is none if no diffrence - update and prepare to send
-                                resp = create_item(table=table, partition_key="steady_state", sort_key=target, send={"steady_state": probes})
-                            else:
-                                return {
-                                    'statusCode': 500,
-                                    'body': f"The following arguments do not have the correct type: {diff}"
-                                }
+                        elif not only_all_args and not only_in_args:
+
+                             # diff is none if no diffrence - update and prepare to send
+                            resp = create_item(table=table, partition_key="steady_state", sort_key=target, send={"steady_state": probes})
+                                
                         elif only_all_args:
 
                             # only_args -> means input/parameter args are less than required args. So we check for default
@@ -239,12 +250,14 @@ def handler(event, context):
 
                             # update if default args + input args satisfy total argument requirements
                             if not none_values:
-
+                                
+                                # Update target config with default arg vals
                                 existing_config = get_item(table, 'target_config', target)['config']
                                 existing_config.update(has_defaults)
-                                
                                 resp = create_item(table, 'target_config', target, {"config": existing_config})
                                 responses.append(handle_dynamodb_response(resp))
+                                
+                                # create steady state
                                 resp = create_item(table=table, partition_key="steady_state", sort_key=target, send={"steady_state": probes})
                                 responses.append(handle_dynamodb_response(resp))
                                 

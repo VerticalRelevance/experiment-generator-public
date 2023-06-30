@@ -1,0 +1,432 @@
+Blackhole DNS:
+  tag_value:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.network.actions.point_inactive_dns
+  load:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  count:
+    Type: int
+    Required: false
+    Default: 1000
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  tag_key:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.network.actions.point_inactive_dns
+  region:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.network.actions.point_inactive_dns
+  test_target_type:
+    Type: str
+    Required: false
+    Default: RANDOM
+    Function Name:
+    - experimentvr.network.actions.point_inactive_dns
+  targets:
+    Type: List[str]
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.network.actions.point_inactive_dns
+Kubernetes (EKS)-Worker Node-EC2-Network-Inbound/OutBound Connectivity:
+  duration:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_all_network_io
+  tag_value:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_all_network_io
+  load:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  count:
+    Type: int
+    Required: false
+    Default: 1000
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  tag_key:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_all_network_io
+  region:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_all_network_io
+  targets:
+    Type: List[str]
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_all_network_io
+  test_target_type:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_all_network_io
+Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization:
+  missed_percent:
+    Type: int
+    Required: true
+    Default: 65
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  minutes:
+    Type: int
+    Required: true
+    Default: 20
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  count:
+    Type: int
+    Required: false
+    Default: 1000
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  sla:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  tag_key:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  targets:
+    Type: List[str]
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  test_target_type:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  duration:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  memory_percentage_per_worker:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  tag_value:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  load:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  number_of_workers:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  region:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  testday:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+Kubernetes (Self-Managed)-Worker Node-Kubernetes Ingress Controller-State-Termination:
+  missed_percent:
+    Type: int
+    Required: true
+    Default: 65
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  instance_ids:
+    Type: List[str]
+    Required: false
+    Default: null
+    Function Name:
+    - chaosaws.ec2.actions.terminate_instances
+  configuration:
+    Type: Configuration
+    Required: false
+    Default: null
+    Function Name:
+    - chaosaws.ec2.actions.terminate_instances
+  minutes:
+    Type: int
+    Required: true
+    Default: 20
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  count:
+    Type: int
+    Required: false
+    Default: 1000
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  sla:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  tag_key:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.terminate_instance
+  filters:
+    Type: List[Dict[str, Any]]
+    Required: false
+    Default: null
+    Function Name:
+    - chaosaws.ec2.actions.terminate_instances
+  targets:
+    Type: List[str]
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.terminate_instance
+  test_target_type:
+    Type: str
+    Required: false
+    Default: RANDOM
+    Function Name:
+    - experimentvr.ec2.actions.terminate_instance
+  secrets:
+    Type: Secrets
+    Required: false
+    Default: null
+    Function Name:
+    - chaosaws.ec2.actions.terminate_instances
+  tag_value:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.terminate_instance
+  load:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  az:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - chaosaws.ec2.actions.terminate_instances
+  region:
+    Type: str
+    Required: false
+    Default: us-east-1
+    Function Name:
+    - experimentvr.ec2.actions.terminate_instance
+  testday:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+Processor SSM:
+  missed_percent:
+    Type: int
+    Required: true
+    Default: 65
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  port_type:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  minutes:
+    Type: int
+    Required: true
+    Default: 20
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  count:
+    Type: int
+    Required: false
+    Default: 1000
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  sla:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  tag_key:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  interface:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  ports:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  targets:
+    Type: List[str]
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  test_target_type:
+    Type: str
+    Required: false
+    Default: RANDOM
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  duration:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  tag_value:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  delay:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  load:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  region:
+    Type: str
+    Required: false
+    Default: us-east-1
+    Function Name:
+    - experimentvr.ec2.actions.elk_stress_network_latency
+  testday:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+test:
+  cluster_name:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+  tag_value:
+    Type: ''
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+    - experimentvr.k8s.actions.delete_pod
+  name_space:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+    - experimentvr.k8s.actions.delete_pod
+  pod_name_pattern:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+    - experimentvr.k8s.actions.delete_pod
+  output_s3_bucket_name:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+    - experimentvr.k8s.actions.delete_pod
+  tag_key:
+    Type: ''
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+    - experimentvr.k8s.actions.delete_pod
+  health_check_path:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+  region:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
+    - experimentvr.k8s.actions.delete_pod
+  health_check_port:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.k8s.probes.pod_healthy
