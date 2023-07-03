@@ -120,9 +120,15 @@ def handler(event, context):
     # For get and delete, we need only the 'term', so we take the data variable as the term
     elif http_method == 'GET':
         resp = get_item(table=table, partition_key="methods", sort_key=data)
+        
+        # cant json dump decimals, make int
+        for item in resp['method']:
+            if 'pauses' in item:
+                for k, v in item['pauses'].items():
+                    item['pauses'][k] = int(v)
         return {
             'statusCode': 200,
-            'body': json.dumps(resp)
+            'body': json.dumps(resp['method'])
         } 
     elif http_method == 'DELETE':
         print(data.decode())

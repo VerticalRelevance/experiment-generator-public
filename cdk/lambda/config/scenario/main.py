@@ -3,6 +3,7 @@ import json
 import os
 import base64
 from typing import get_args, Literal
+from decimal import Decimal
 
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
@@ -252,9 +253,14 @@ def handler(event, context):
     
     elif http_method == 'GET':
         resp = get_item(table=table, partition_key="scenario_config", sort_key=term)
+        scen = resp['scenario']
+        for arg, val in scen.items():
+            if isinstance(val, Decimal):
+                _real_type_ = eval(resp['documentation'][arg]['Type'])
+                scen[arg] = _real_type_(val)
         return {
             'statusCode': 200,
-            'body': json.dumps(resp)
+            'body': json.dumps(scen)
         } 
     elif http_method == 'DELETE':
         resp = delete_item(table=table, partition_key="scenario_config", sort_key=term)

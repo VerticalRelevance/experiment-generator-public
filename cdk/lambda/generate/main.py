@@ -37,14 +37,13 @@ def handler(event, context):
         query_parameters = event['queryStringParameters']
         print(query_parameters)
         
-        exp_name=query_parameters['experiment scenario']
+        exp_name=query_parameters['experiment name']
         print(exp_name)
         file = get_yaml_from_s3(bucket_name, exp_name, load=False)
-
         return {
             'statusCode': 200,
             'headers': { 'Content-Type': 'application/octet-stream; charset=utf-8'},
-            'body': file,
+            'body': file.encode('utf-8'),
         }
     else:
         data = base64.b64decode(event['body'])
@@ -140,7 +139,7 @@ def handler(event, context):
                     'body': yaml_data.encode('utf-8'),
                 }
         elif http_method == "DELETE":
-            for exp_name in data['experiment_names']:
+            for exp_name in data['Experiment Names']:
                 s3.delete_object(Bucket=bucket_name, Key=exp_name)
             return {
                 'statusCode': 200,

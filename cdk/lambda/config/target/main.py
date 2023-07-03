@@ -164,8 +164,8 @@ def handler(event, context):
         resp_ss = get_item(table=table, partition_key="steady_state", sort_key=data)
 
         return_data = {
-            'target_config': resp_tc,
-            'steady_state:': resp_ss
+            'Config': resp_tc['config'],
+            'Steady State': resp_ss['steady_state']
         }
         return {
             'statusCode': 200,
