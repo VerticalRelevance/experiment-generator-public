@@ -225,7 +225,8 @@ class GeneratorStack(Stack):
                         },
                         api_config={
                             'method' : "GET",
-                            'require_key': False
+                            'require_key': False,
+                            'parent_route': config_route
                         },
                         storage=storage
                     )
