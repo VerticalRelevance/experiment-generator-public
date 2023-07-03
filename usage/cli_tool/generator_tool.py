@@ -23,7 +23,7 @@ def main():
     app_sp = app.add_subparsers(dest="app_subcommand")
     init = app_sp.add_parser("init", help="Gets documentation and starter templates")
     onboarding = app_sp.add_parser("onboarding", help="Onboard app")
-    onboarding.add_argument("crud", choices=["create", "update", "get", "delete"], help="CRUD for onboarding app")
+    onboarding.add_argument("crud", choices=["create", "update", "get", "delete"], help="CRUD for onboarding app", default=None)
     onboarding.add_argument("item", default=None)
     
     package = subparsers.add_parser("package")
@@ -48,13 +48,13 @@ def main():
         shutil.copy('sample_template.yaml', dir_name)
 
         # Get and store documentation
-        docs = api_call('GET', 'getinputs', params={'type':'documentation'})
+        docs = api_call('GET', 'config/getinputs', params={'type':'documentation'})
         filepath = os.path.join(dir_name, "documentation")
         with open(filepath, 'wb') as file:
             file.write(docs.content)
         print(f"initialized at: {os.path.abspath(dir_name)}")
 
-    if args.command == "app" and (args.crud == "create" or args.crud == "update"):
+    if args.command == "app" and hasattr(args, 'crud') and (args.crud == "create" or args.crud == "update"):
         with open(args.item, "rb") as file:
             yaml_data = yaml.safe_load(file)
             call = "POST" if args.crud == "create" else "PUT"
@@ -74,7 +74,7 @@ def main():
             yaml_data = yaml.safe_load(file)
             call = "POST" if args.crud == "create" else "PUT"
             
-            # scenario needs to iterate here. other calls can iterate in lambda. will standarize later
+            # for multiple scenarios, iteration happens here. other calls can iterate in lambda. will standarize later
             for method in yaml_data['Scenario Method']:
                 r = api_call(call, "config/method", data=method)
 
