@@ -196,10 +196,10 @@ def handler(event, context):
                     resp = delete_item(table, 'target_config', tc)
                     responses.append(handle_dynamodb_response(resp))
                 
-        if 'steady_state' in data:
+        if 'Steady state' in data:
             print("ss process")
             if http_method == 'POST' or http_method=="PUT":
-                for target, steady_state in data['steady_state'].items():
+                for target, steady_state in data['Steady state'].items():
                     # Since order matters, for steady state post and put will act identically
                     method_items = [build_method_item(func, table) for func in steady_state]
 
@@ -276,7 +276,7 @@ def handler(event, context):
                     responses.append(handle_dynamodb_response(resp))
                 
             elif http_method == "DELETE":
-                for ss in data['steady_state']:
+                for ss in data['Steady state']:
             
                     resp = delete_item(table, 'steady_state', ss)
                     responses.append(handle_dynamodb_response(resp))

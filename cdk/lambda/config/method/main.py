@@ -131,6 +131,7 @@ def handler(event, context):
             'body': json.dumps(resp['method'])
         } 
     elif http_method == 'DELETE':
-        print(data.decode())
-        resp = delete_item(table=table, partition_key="methods", sort_key=data.decode())
+        data = json.loads(data)
+        print(data)
+        resp = delete_item(table=table, partition_key="methods", sort_key=data)
         return handle_dynamodb_response(resp)

@@ -65,7 +65,7 @@ def get_function_signature(node, module_path):
     signature = {
         'partition_key': 'packages',
         'sort_key': f"{import_path}.{function_name}",
-        'pacakge_name': module_path.split("/")[0],
+        'package_name': module_path.split("/")[0],
         'import_path': import_path,
         'function_name': function_name,
         'args': {arg: {'type': type_, 'default': default_} for arg, type_, default_ in zip(args, arg_types, default_values)},

@@ -5,7 +5,8 @@ from aws_cdk import (
     aws_iam as _iam,
     aws_dynamodb as dynamodb,
     aws_s3 as s3,
-    aws_lambda as _lambda
+    aws_lambda as _lambda,
+    aws_ssm as ssm
 )
 from constructs import Construct
 from .api_route_construct import Route
@@ -230,3 +231,11 @@ class GeneratorStack(Stack):
                         },
                         storage=storage
                     )
+        
+        # Retrieve the API Gateway URL and store in ssm
+        ssm.StringParameter(
+            self,
+            "ApiGatewayBaseUrlParameter",
+            parameter_name="/experiment_generator/api_url" ,
+            string_value=api.url,
+        )

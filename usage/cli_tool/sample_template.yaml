@@ -1,3 +1,5 @@
+# Sample template of yaml inputs for the cli tool. 
+
 # Pass the Following in to the scenario command
 # Experiment Method will hit the /method route. Must follow method_name: [func1, func2,...] pattern. Can provide a list
 Scenario Method:
@@ -48,6 +50,20 @@ Target Application Config:
       region: us-east-1
       output_s3_bucket_name: placeholder_bucket
       cluster_name: test
-  steady_state:
+  Steady state:
     App 11:
       - experimentvr.k8s.probes.pod_healthy
+
+# For deleting, uncomment to use
+
+# Target Application Delete:
+#   Parameters:
+#     - App 11
+#   Steady state:
+#     - App 11
+
+# Scenario Method Delete:
+#   - Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization
+
+# Scenario Config Delete:
+#   - Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization
