@@ -2,7 +2,10 @@ import boto3
 import json
 import os
 import base64
-from typing import get_args, Literal
+from typing import get_args, Literal, Any, Union
+import types
+from types_cl import *
+
 
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ['TABLE_NAME']
@@ -97,41 +100,85 @@ def outer_inner_types(arg):
     outer = arg.__name__
     outer = eval(outer)
     inner_args = get_args(arg)
+    print(inner_args)
     if len(inner_args) == 1:
         inner = inner_args[0]
     elif len(inner_args)>1:
         inner = inner_args
+        print("len inner > 1")
     
-    print(inner, outer)
+    print(outer, inner)
     return outer, inner
+
+def isinstance_with_any(obj, cls):
+    # isinstance but works with any
+    if cls == Any:
+        return isinstance(obj, object)
+    else:
+        return isinstance(obj, cls)
 
 def check_inner_types(iterable, outer, inner):
     print(iterable)
     if type(iterable)==outer:
-        if isinstance(inner, tuple):
+        if isinstance(inner, tuple) and outer == dict:
+            print('checking dict')
             nested_inner_args = get_args(inner[1])
             if not nested_inner_args:
                 print('no nest')
-                inner_check = [isinstance(key, inner[0]) and isinstance(val, inner[1]) for key, val in iterable.items()]
+                inner_check = [isinstance_with_any(key, inner[0]) and isinstance_with_any(val, inner[1]) for key, val in iterable.items()]
                 print(inner_check)
-            elif (isinstance(key, inner[0]) for key, val in iterable.items()): # if key type matches
+            elif (isinstance_with_any(key, inner[0]) for key, val in iterable.items()): # if key type matches
                 print('check nested')
                 nest_out, nest_in = outer_inner_types(inner[1])
-                print(nest_out, nest_in)
                 inner_check = [check_inner_types(val, nest_out, nest_in) for val in iterable.values()]
                 print(inner_check)
             else:
                 return False
+        if isinstance(inner, tuple) and (outer == tuple or outer == list):
+            print('checking tuple/list')
+            nested_inner_args = get_args(inner[1])
+            if not nested_inner_args:
+                print('no nest')
+                inner_check = [isinstance_with_any(val, inner[0]) for val in iterable]
+                print(inner_check)
+            elif (isinstance_with_any(val, inner[0]) for val in iterable): # if key type matches
+                print('check nested')
+                nest_out, nest_in = outer_inner_types(inner[1])
+                inner_check = [check_inner_types(val, nest_out, nest_in) for val in iterable]
+                print(inner_check)
+            else:
+                return False
+        elif isinstance(inner, types.GenericAlias):
+            # for nested param types in param types
+            out2, in2 = outer_inner_types(inner)
+            if outer == list or tuple:
+                values = iterable
+            elif outer == dict:
+                values = iterable.values()
+            inner_check = [check_inner_types(val, out2, in2) for val in values]
         else:
-            inner_check = [isinstance(item, inner) for item in iterable]
+            inner_check = [isinstance_with_any(item, inner) for item in iterable]
 
-        return all(inner_check)    
+        return all(inner_check)
+    elif outer==Union:
+        print('check union')
+        for typ in inner:
+            if isinstance(typ, types.GenericAlias):
+                # for nested param types in param types
+                out2, in2 = outer_inner_types(typ)
+                if check_inner_types(iterable, out2, in2):
+                    return True
+            else:
+                if isinstance_with_any(iterable, typ):
+                    return True
+        return False
     else:
         return False 
 
 def compare_arg_types(input_args, types):
 
     arg_types = {k: type(v).__name__ for k, v in input_args.items()}
+    print("input args:", input_args)
 
     diff_values = {}
 
@@ -139,7 +186,7 @@ def compare_arg_types(input_args, types):
         if value and key in arg_types and arg_types[key] != value:
             print(value, arg_types.get(key))
             try:
-                print("checking for nested types..")
+                print("checking for nested or literal types..")
                 arg_type = eval(value.lower())
                 outer_type, inner_type = outer_inner_types(arg_type)
                 print(outer_type, inner_type)
@@ -227,7 +274,7 @@ def handler(event, context):
                             defaults.update(def_)
                             types.update(type_)
 
-                        diff = compare_arg_types(all_args, types)
+                        diff = compare_arg_types(input_args, types)
                         only_all_args, only_in_args = compare_lists(all_args.keys(), input_args.keys())
 
                         if diff:
@@ -246,7 +293,7 @@ def handler(event, context):
 
                             # only_args -> means input/parameter args are less than required args. So we check for default
                             has_defaults = {arg:defaults.get(arg) for arg in only_all_args}
-                            none_values = [key for key, value in has_defaults.items() if value is None]
+                            none_values = [key for key, value in has_defaults.items() if value == "NoDefault"]
 
                             # update if default args + input args satisfy total argument requirements
                             if not none_values:

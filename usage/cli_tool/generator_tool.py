@@ -128,7 +128,7 @@ def main():
 
         elif args.crud == "get":
             rm = api_call("get", "config/method", params={"term": args.item}, print_response=False)
-            rs = api_call("get", "config/scenario", params={"term": args.item}, print_response=False)
+            rs = api_call("get", "config/scenario", params={"name": args.item}, print_response=False)
             y_resp = {
                 "Method": rm.json(),
                 "Config": rs.json()

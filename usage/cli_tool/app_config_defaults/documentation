@@ -1,0 +1,85 @@
+Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization:
+  missed_percent:
+    Type: int
+    Required: true
+    Default: 65
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  minutes:
+    Type: int
+    Required: true
+    Default: 20
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  count:
+    Type: int
+    Required: false
+    Default: 1000
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  sla:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative
+  tag_key:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  targets:
+    Type: List[str]
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  test_target_type:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  duration:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  memory_percentage_per_worker:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  tag_value:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  load:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.load.actions.load_generate
+  number_of_workers:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  region:
+    Type: str
+    Required: false
+    Default: null
+    Function Name:
+    - experimentvr.ec2.actions.stress_memory
+  testday:
+    Type: str
+    Required: true
+    Default: NoDefault
+    Function Name:
+    - experimentvr.load.probes.load_probe_relative

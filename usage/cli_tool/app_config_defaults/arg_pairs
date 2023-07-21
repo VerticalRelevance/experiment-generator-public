@@ -1,0 +1,17 @@
+Required:
+  sla: '250'
+  missed_percent: 65
+  testday: '`r format(Sys.time(), ''%d %B, %Y'')`'
+  minutes: 20
+Optional:
+  count: 1000
+  tag_key: tag:Name
+  targets:
+  - TODO-enter-value-here
+  test_target_type: RANDOM
+  duration: '300'
+  memory_percentage_per_worker: '99'
+  tag_value: placeholder.k8s.local
+  load: null
+  number_of_workers: '1'
+  region: us-east-1

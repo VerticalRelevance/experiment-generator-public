@@ -1,0 +1,23 @@
+Target Application Config:
+  Parameters:
+    Vertical Trader:
+      name_space: trader-1 
+      pod_name_pattern: vr-trader
+      health_check_port: '8080'
+      health_check_path: health
+      tag_key: eks.amazonaws.com/nodegroup
+      tag_value: linux-Vertical-prod-usw1-us-west-1a-3458798973
+      region: us-west-1
+      cluster_name: trader-cluster-usw1
+      label_selector: trader
+      conditions:
+        - type: Ready                              
+          status: "False"
+          lastTransitionTime: "2023-01-01T00:00:00Z"
+        - type: "www.example.com/feature-1"       
+          status: "False"
+          lastTransitionTime: "2023-01-01T00:00:00Z"
+  Steady state:
+    Vertical Trader:
+      - experimentvr.k8s.probes.pod_healthy
+      - chaosk8s.pod.probes.pods_in_conditions
