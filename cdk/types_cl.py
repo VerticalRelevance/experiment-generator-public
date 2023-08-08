@@ -1,5 +1,5 @@
 import enum
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Dict
 
 __all__ = [
     "MicroservicesStatus",
@@ -44,7 +44,7 @@ Journal = dict[str, Any]
 Run = dict[str, Any]
 Step = dict[str, Any]
 
-Secrets = dict[str, dict[str, str]]
+Secrets = Dict[str, Dict[str, str]]
 Configuration = dict[str, dict[str, str]]
 
 Discovery = dict[str, Any]

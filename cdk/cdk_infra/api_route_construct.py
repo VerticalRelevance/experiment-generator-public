@@ -55,6 +55,11 @@ class Route(Construct):
         
         env = None
 
+        if 'handler' in lambda_data:
+            handler=lambda_data['handler']
+        else:
+            handler='main.handler'
+
         if storage:
             env = dict()
             if 'dynamodb' in storage:
@@ -69,7 +74,7 @@ class Route(Construct):
             self, name+'Lambda',
             runtime=_lambda.Runtime.PYTHON_3_9,
             code=lambda_data['code'],
-            handler='main.handler',
+            handler=handler,
             role=lambda_role,
             layers=lambda_data.get('layers'),  
             timeout=lambda_data.get('timeout'), 

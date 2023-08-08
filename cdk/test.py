@@ -41,7 +41,7 @@
 # print(a(test))
 # print(inner_type_match(a))
 
-from typing import get_args, Any, Union
+from typing import get_args, Any, Union, Dict
 import types
 
 # test = ['a', 'b', 'c']
@@ -79,8 +79,8 @@ def isinstance_with_any(obj, cls):
 
 def check_inner_types(iterable, outer, inner):
     print(iterable)
-    if type(iterable)==outer:
-        if isinstance(inner, tuple) and outer == dict:
+    if isinstance(iterable, outer):
+        if isinstance(inner, tuple) and (outer == dict or outer == Dict):
             print('checking dict')
             nested_inner_args = get_args(inner[1])
             if not nested_inner_args:
@@ -113,7 +113,7 @@ def check_inner_types(iterable, outer, inner):
             out2, in2 = outer_inner_types(inner)
             if outer == list or tuple:
                 values = iterable
-            elif outer == dict:
+            elif outer == dict or outer==Dict:
                 values = iterable.values()
             inner_check = [check_inner_types(val, out2, in2) for val in values]
         else:
@@ -143,13 +143,13 @@ from types_cl import *
 # arg_type = eval("dict[str, dict]")
 # arg_type = eval("list[dict[str, str]]")
 
-arg_type = eval("MicroservicesStatus")
+arg_type = eval("Secrets")
 test = {
     "test": {
         "test": "fin"
     }
 }
-test = (test, test)
+# test = (test, test)
 outer_type, inner_type = outer_inner_types(arg_type)
 
 print(check_inner_types(test, outer_type, inner_type))

@@ -6,7 +6,8 @@ from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_s3 as s3,
     aws_lambda as _lambda,
-    aws_ssm as ssm
+    aws_ssm as ssm,
+    BundlingOptions
 )
 from constructs import Construct
 from .api_route_construct import Route
@@ -68,8 +69,9 @@ class GeneratorStack(Stack):
                                 api=api,
                                 name="method",
                                 lambda_data={
-                                    'code': _lambda.Code.from_asset('lambda/config/method'),
-                                    'timeout' : Duration.minutes(1)
+                                    'code': _lambda.Code.from_asset('lambda/config'),
+                                    'timeout' : Duration.minutes(1),
+                                    'handler': "method.handler"
                                 },
                                 api_config={
                                     'method' : "POST",
@@ -99,8 +101,16 @@ class GeneratorStack(Stack):
                                 api=api,
                                 name="scenario",
                                 lambda_data={
-                                    'code': _lambda.Code.from_asset('lambda/config/scenario'),
-                                    'timeout' : Duration.minutes(1)
+                                    'code': _lambda.Code.from_asset('lambda/config',
+                                                                    bundling=BundlingOptions(
+                                                                        image=_lambda.Runtime.PYTHON_3_9.bundling_image,
+                                                                        command=[
+                                                                            "bash", "-c",
+                                                                            "pip install chaoslib"
+                                                                        ]
+                                                                    )),
+                                    'timeout' : Duration.minutes(1),
+                                    'handler': "scenario.handler"
                                 },
                                 api_config={
                                     'method' : "POST",
@@ -138,8 +148,9 @@ class GeneratorStack(Stack):
                                 api=api,
                                 name="target",
                                 lambda_data={
-                                    'code': _lambda.Code.from_asset('lambda/config/target'),
-                                    'timeout' : Duration.minutes(1)
+                                    'code': _lambda.Code.from_asset('lambda/config'),
+                                    'timeout' : Duration.minutes(1),
+                                    'handler': "target.handler"
                                 },
                                 api_config={
                                     'method' : "POST",
@@ -220,9 +231,10 @@ class GeneratorStack(Stack):
                         api=api,
                         name="getinputs",
                         lambda_data={
-                            'code': _lambda.Code.from_asset('lambda/config/get_all_config'),
+                            'code': _lambda.Code.from_asset('lambda/config'),
                             'timeout' : Duration.minutes(1),
-                            'layers': [yaml_layer]
+                            'layers': [yaml_layer],
+                            'handler': 'get_config.handler'
                         },
                         api_config={
                             'method' : "GET",
