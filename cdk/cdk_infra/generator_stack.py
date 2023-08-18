@@ -106,7 +106,7 @@ class GeneratorStack(Stack):
                                                                         image=_lambda.Runtime.PYTHON_3_9.bundling_image,
                                                                         command=[
                                                                             "bash", "-c",
-                                                                            "pip install chaoslib"
+                                                                            "pip install -U chaostoolkit-lib"
                                                                         ]
                                                                     )),
                                     'timeout' : Duration.minutes(1),
@@ -148,7 +148,14 @@ class GeneratorStack(Stack):
                                 api=api,
                                 name="target",
                                 lambda_data={
-                                    'code': _lambda.Code.from_asset('lambda/config'),
+                                    'code': _lambda.Code.from_asset('lambda/config',
+                                                                    bundling=BundlingOptions(
+                                                                        image=_lambda.Runtime.PYTHON_3_9.bundling_image,
+                                                                        command=[
+                                                                            "bash", "-c",
+                                                                            "pip install -U chaostoolkit-lib"
+                                                                        ]
+                                                                    )),
                                     'timeout' : Duration.minutes(1),
                                     'handler': "target.handler"
                                 },

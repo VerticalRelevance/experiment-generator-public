@@ -1,59 +1,6 @@
-# import inspect
-# import typing
-
-
-# def testfunc(arg1: list[str]):
-#     '''sample function'''
-#     for arg in arg1:
-#         print(arg)
-
-# def inner_type_match(func):
-#     '''gets type of signature'''
-#     arg = inspect.signature(func)
-#     print(arg.parameters)
-
-#     # note exits after first iteration
-#     for param in arg.parameters:
-#         print(param)
-#         step1 = arg.parameters[param].annotation
-#         outer = step1.__name__
-#         step2 = step1.__args__
-#         inner = step2[0].__name__
-#         return outer, inner
-
-# # typefunc(testfunc)
-
-# # import re
-
-# # test = ['a', 'b', 'c']
-# # in_type = type(test).__name__
-# # arg_type = "List[str]"
-# # if in_type != arg_type:
-# #     if in_type in arg_type.lower():
-# #         val_in_brackets = r"\[(.*?)\]"  
-# #         match = re.findall(val_in_brackets, arg_type)
-# #         # iterate over in_type to see if each value matches match[0]
-
-
-# ttype="list[str]"
-# exec(f"""def a(x: {ttype}):
-#     return x""")
-# print(a(test))
-# print(inner_type_match(a))
-
-from typing import get_args, Any, Union, Dict
+from typing import get_args, Any, Dict, List, Optional, Tuple, Union, _GenericAlias
 import types
 
-# test = ['a', 'b', 'c']
-# test = {
-#     "test": {
-#         "test2": {
-#             "test3" : "final"
-#         }
-#     }
-# }
-
-test = [{'type': 'Ready', 'status': 'False', 'lastTransitionTime': '2023-01-01T00:00:00Z'}, {'type': 'www.example.com/feature-1', 'status': 'False', 'lastTransitionTime': '2023-01-01T00:00:00Z'}]
 
 def outer_inner_types(arg):
 
@@ -80,7 +27,8 @@ def isinstance_with_any(obj, cls):
 def check_inner_types(iterable, outer, inner):
     print(iterable)
     if isinstance(iterable, outer):
-        if isinstance(inner, tuple) and (outer == dict or outer == Dict):
+        print('pass outer')
+        if isinstance(inner, Tuple) and outer == Dict:
             print('checking dict')
             nested_inner_args = get_args(inner[1])
             if not nested_inner_args:
@@ -94,7 +42,7 @@ def check_inner_types(iterable, outer, inner):
                 print(inner_check)
             else:
                 return False
-        if isinstance(inner, tuple) and (outer == tuple or outer == list):
+        if isinstance(inner, Tuple) and (outer == Tuple or outer == List):
             print('checking tuple/list')
             nested_inner_args = get_args(inner[1])
             if not nested_inner_args:
@@ -108,12 +56,12 @@ def check_inner_types(iterable, outer, inner):
                 print(inner_check)
             else:
                 return False
-        elif isinstance(inner, types.GenericAlias):
+        elif isinstance(inner, _GenericAlias):
             # for nested param types in param types
             out2, in2 = outer_inner_types(inner)
-            if outer == list or tuple:
+            if outer == List or outer == Tuple:
                 values = iterable
-            elif outer == dict or outer==Dict:
+            elif outer==Dict:
                 values = iterable.values()
             inner_check = [check_inner_types(val, out2, in2) for val in values]
         else:
@@ -123,7 +71,7 @@ def check_inner_types(iterable, outer, inner):
     elif outer==Union:
         print('check union')
         for typ in inner:
-            if isinstance(typ, types.GenericAlias):
+            if isinstance(typ, _GenericAlias):
                 # for nested param types in param types
                 out2, in2 = outer_inner_types(typ)
                 if check_inner_types(iterable, out2, in2):
@@ -136,20 +84,30 @@ def check_inner_types(iterable, outer, inner):
         return False 
 
 from types_cl import *
+# test = ['a', 'b', '1']
+# arg_type = eval("List[str]")
 
+# test = {
+#     "test": {
+#         "test2": {
+#             "test3" : "final"
+#         }
+#     }
+# }
+# arg_type = eval("Dict[str, Dict[str, str]]")
 
-# arg_type = eval("list[str]")
-# arg_type = eval("list[dict[str, str]]")
-# arg_type = eval("dict[str, dict]")
-# arg_type = eval("list[dict[str, str]]")
+# test = [{'type': 'Ready', 'status': 'False', 'lastTransitionTime': '2023-01-01T00:00:00Z'}, {'type': 'www.example.com/feature-1', 'status': 'False', 'lastTransitionTime': '2023-01-01T00:00:00Z'}]
+# arg_type = eval("List[Dict[str, str]]")
 
-arg_type = eval("Secrets")
-test = {
-    "test": {
-        "test": "fin"
-    }
-}
-# test = (test, test)
+# arg_type = eval("Secrets")
+# test = {
+#     "test": {
+#         "test": "fin"
+#     }
+# }
+
+arg_type = eval("Tuple[str]")
+test = ('test', 'test')
 outer_type, inner_type = outer_inner_types(arg_type)
 
 print(check_inner_types(test, outer_type, inner_type))
