@@ -26,7 +26,6 @@ class GeneratorStack(Stack):
             sort_key=dynamodb.Attribute(name="sort_key", type=dynamodb.AttributeType.STRING),
         )
 
-        # Config bucket not used as of now
         experiment_bucket = s3.Bucket(self, 'ExperimentBucket')
 
         storage = {"dynamodb": db_table}
