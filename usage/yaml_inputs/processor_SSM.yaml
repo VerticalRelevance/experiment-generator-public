@@ -20,7 +20,7 @@ Scenario Method:
 
 # # Method configurations will hit /scenario route. 
 Scenario Configurations: 
-  - term: Processor SSM
+  - name: Processor SSM
     scenario:
       experimentvr.load.actions.load_generate:
         count: 1000

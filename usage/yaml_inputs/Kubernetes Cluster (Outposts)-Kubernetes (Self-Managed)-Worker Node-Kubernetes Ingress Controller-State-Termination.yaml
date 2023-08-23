@@ -25,7 +25,7 @@ Scenario Method:
 
 # # Method configurations will hit /scenario route. 
 Scenario Configurations: 
-  - term: Kubernetes (Self-Managed)-Worker Node-Kubernetes Ingress Controller-State-Termination
+  - name: Kubernetes (Self-Managed)-Worker Node-Kubernetes Ingress Controller-State-Termination
     scenario:
       experimentvr.load.actions.load_generate:
         count: 1000

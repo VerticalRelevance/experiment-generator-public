@@ -21,7 +21,7 @@ Scenario Method:
 
 # # Method configurations will hit /scenario route. 
 Scenario Configurations: 
-  - term: Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization
+  - name: Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization
     scenario:
       experimentvr.load.actions.load_generate:
         count: 1000
