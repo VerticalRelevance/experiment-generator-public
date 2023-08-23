@@ -174,7 +174,7 @@ def compare_arg_types(input_args, types):
                 diff_values[key] = value
     return diff_values
 
-def build_method_item(func, table):
+def build_method_item(func, table, additionals=None):
 
     signature = get_item(table, 'packages', func)
     item = {
@@ -187,4 +187,8 @@ def build_method_item(func, table):
             'arguments': {arg: f"${{{arg}}}" for arg in signature['args'].keys()},
         }
     }
+    
+    if additionals:
+        item.update(additionals)
+        
     return item, signature

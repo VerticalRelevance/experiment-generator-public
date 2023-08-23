@@ -30,6 +30,17 @@ class GeneratorStack(Stack):
 
         storage = {"dynamodb": db_table}
 
+        # Lambda Layers
+        yaml_layer = _lambda.LayerVersion(self, "YamlLayer",
+            code=_lambda.Code.from_asset('lambda_layers/yaml'),
+            compatible_runtimes=[_lambda.Runtime.PYTHON_3_11],
+            )
+        
+        cl_layer = _lambda.LayerVersion(self, "ChaoslibLayer",
+            code=_lambda.Code.from_asset('lambda_layers/chaoslib'),
+            compatible_runtimes=[_lambda.Runtime.PYTHON_3_11],
+            )
+
         package_route = Route(self, 'Package',
                                 api=api,
                                 name="package",
@@ -100,16 +111,10 @@ class GeneratorStack(Stack):
                                 api=api,
                                 name="scenario",
                                 lambda_data={
-                                    'code': _lambda.Code.from_asset('lambda/config',
-                                                                    bundling=BundlingOptions(
-                                                                        image=_lambda.Runtime.PYTHON_3_9.bundling_image,
-                                                                        command=[
-                                                                            "bash", "-c",
-                                                                            "pip install -U chaostoolkit-lib"
-                                                                        ]
-                                                                    )),
+                                    'code': _lambda.Code.from_asset('lambda/config'),
                                     'timeout' : Duration.minutes(1),
-                                    'handler': "scenario.handler"
+                                    'handler': "scenario.handler",
+                                    'layers': [cl_layer]
                                 },
                                 api_config={
                                     'method' : "POST",
@@ -147,16 +152,10 @@ class GeneratorStack(Stack):
                                 api=api,
                                 name="target",
                                 lambda_data={
-                                    'code': _lambda.Code.from_asset('lambda/config',
-                                                                    bundling=BundlingOptions(
-                                                                        image=_lambda.Runtime.PYTHON_3_9.bundling_image,
-                                                                        command=[
-                                                                            "bash", "-c",
-                                                                            "pip install -U chaostoolkit-lib"
-                                                                        ]
-                                                                    )),
+                                    'code': _lambda.Code.from_asset('lambda/config'),
                                     'timeout' : Duration.minutes(1),
-                                    'handler': "target.handler"
+                                    'handler': "target.handler",
+                                    'layers': [cl_layer]
                                 },
                                 api_config={
                                     'method' : "POST",
@@ -165,6 +164,7 @@ class GeneratorStack(Stack):
                                 },
                                 storage=storage,
                             )
+        
         target_route_read = target_route.add_method(
             api_config={
                 'method': 'GET',
@@ -188,11 +188,6 @@ class GeneratorStack(Stack):
             },
             rt_lambda=target_route.route_lambda
         )
-
-        yaml_layer = _lambda.LayerVersion(self, "YamlLayer",
-            code=_lambda.Code.from_asset('lambda_layers/yaml'),
-            compatible_runtimes=[_lambda.Runtime.PYTHON_3_9],
-            )
 
         generate_route = Route(self, 'Generate',
                                 api=api,
