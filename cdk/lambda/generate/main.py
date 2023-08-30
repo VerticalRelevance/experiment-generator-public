@@ -39,7 +39,7 @@ def handler(event, context):
         
         exp_name=query_parameters['experiment name']
         print(exp_name)
-        file = get_yaml_from_s3(bucket_name, exp_name, load=False)
+        file = get_yaml_from_s3(bucket_name, exp_name+".yaml", load=False)
         return {
             'statusCode': 200,
             'headers': { 'Content-Type': 'application/octet-stream; charset=utf-8'},
@@ -131,7 +131,7 @@ def handler(event, context):
 
                 yaml_data = yaml.dump(experiment, sort_keys=False)
 
-                s3.put_object(Body=yaml_data, Bucket=bucket_name, Key=exp_name) # prefix
+                s3.put_object(Body=yaml_data, Bucket=bucket_name, Key=exp_name+".yaml") # prefix
 
                 return {
                     'statusCode': 200,
