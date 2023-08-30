@@ -36,5 +36,5 @@ Once scenarios and target app configs are loaded, generator handles experiment g
 
 Example - to create run:
 ```
-python generator_tool.py generator create "VR Trader-Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization"
+python generator_tool.py generator create "Vertical Broker-Kubernetes (EKS)-Worker Node-EC2-Resource-High Memory Utilization"
 ```
