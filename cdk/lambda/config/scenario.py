@@ -97,12 +97,12 @@ def handler(event, context):
                         'body': f"The following arguments do not have the correct type: {diff}"
                     }
                 elif not only_args and not only_params:
-
+                    print("arg types pass")
                     # diff is none if no diffrence - update and prepare to send
                     scenario_config.update({func: parameters[func]})
 
                 elif only_args:
-                    
+                    print("checking defaults")
                     # only_args -> means input/parameter args are less than required args. So we check for default
                     has_defaults = {arg:defaults.get(arg) for arg in only_args}
                     none_values = [key for key, value in has_defaults.items() if value == "NoDefault"]
@@ -118,6 +118,13 @@ def handler(event, context):
                             'statusCode': 500,
                             'body': f"The function {func} requires the following arguments: {none_values}"
                         }
+                elif only_params:
+                    print('recieved extra params')
+                    print(only_params)
+                    extra_types = {arg:type(arg).__name__  for arg in only_params}
+                    all_types.update(extra_types)
+                    print(all_types)
+                    scenario_config.update({func: parameters[func]})
                     
             else:
                 print(func)
