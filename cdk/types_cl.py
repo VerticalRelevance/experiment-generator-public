@@ -1,5 +1,5 @@
 import enum
-from typing import Any, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 __all__ = [
     "MicroservicesStatus",
@@ -30,38 +30,38 @@ __all__ = [
 ]
 
 
-Action = dict[str, Any] 
-Experiment = dict[str, Any]
-Probe = dict[str, Any]
- 
+Action = Dict[str, Any]
+Experiment = Dict[str, Any]
+Probe = Dict[str, Any]
+
 Activity = Union[Probe, Action]
 
 Layer = Any
-TargetLayers = dict[str, list[dict[str, Any]]]
+TargetLayers = Dict[str, List[Dict[str, Any]]]
 
-MicroservicesStatus = tuple[dict[str, Any], dict[str, Any]]
-Journal = dict[str, Any]
-Run = dict[str, Any]
-Step = dict[str, Any]
+MicroservicesStatus = Tuple[Dict[str, Any], Dict[str, Any]]
+Journal = Dict[str, Any]
+Run = Dict[str, Any]
+Step = Dict[str, Any]
 
-Secrets = dict[str, dict[str, str]]
-Configuration = dict[str, dict[str, str]]
+Secrets = Dict[str, Dict[str, str]]
+Configuration = Dict[str, Dict[str, str]]
 
-Discovery = dict[str, Any]
-DiscoveredActivities = dict[str, Any]
-DiscoveredSystemInfo = dict[str, Any]
+Discovery = Dict[str, Any]
+DiscoveredActivities = Dict[str, Any]
+DiscoveredSystemInfo = Dict[str, Any]
 
-Settings = dict[str, Any]
-EventPayload = dict[str, Any]
+Settings = Dict[str, Any]
+EventPayload = Dict[str, Any]
 
-Tolerance = Union[int, str, bool, list, dict[str, Any]]
+Tolerance = Union[int, str, bool, list, Dict[str, Any]]
 
-Extension = dict[str, Any]
-Hypothesis = dict[str, Any]
-Control = dict[str, Any]
+Extension = Dict[str, Any]
+Hypothesis = Dict[str, Any]
+Control = Dict[str, Any]
 
-ConfigVars = dict[str, Any]
-SecretVars = dict[str, Any]
+ConfigVars = Dict[str, Any]
+SecretVars = Dict[str, Any]
 
 
 class Strategy(enum.Enum):
@@ -122,4 +122,3 @@ class Schedule:
         self.continuous_hypothesis_frequency = continuous_hypothesis_frequency
         self.fail_fast = fail_fast
         self.fail_fast_ratio = fail_fast_ratio
-

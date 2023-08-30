@@ -67,9 +67,9 @@ class Route(Construct):
 
         route_lambda = _lambda.Function(
             self, name+'Lambda',
-            runtime=_lambda.Runtime.PYTHON_3_9,
+            runtime=_lambda.Runtime.PYTHON_3_11,
             code=lambda_data['code'],
-            handler='main.handler',
+            handler=lambda_data['handler'] if 'handler' in lambda_data else 'main.handler',
             role=lambda_role,
             layers=lambda_data.get('layers'),  
             timeout=lambda_data.get('timeout'), 
